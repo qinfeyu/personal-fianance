@@ -1,0 +1,174 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Design System — Personal Finance Tracker
+   Dark-first design with violet accent
+   ============================================================ */
+
+:root {
+  --background: #07070f;
+  --foreground: #f0f0f8;
+  --muted-foreground: rgba(240, 240, 248, 0.4);
+  --card: rgba(255, 255, 255, 0.03);
+  --card-foreground: #f0f0f8;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.05);
+  --primary: #7c3aed;
+  --primary-foreground: #ffffff;
+  --ring: #7c3aed;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Date input styling */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(0.4);
+  cursor: pointer;
+}
+
+/* Number input — hide spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Smooth data transitions */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out forwards;
+}
+
+/* Radix UI animation utilities */
+@keyframes accordion-down {
+  from { height: 0; }
+  to { height: var(--radix-accordion-content-height); }
+}
+@keyframes accordion-up {
+  from { height: var(--radix-accordion-content-height); }
+  to { height: 0; }
+}
+
+/* Dialog animations */
+@keyframes fade-in-0 {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fade-out-0 {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes zoom-in-95 {
+  from { transform: translate(-50%, -50%) scale(0.95); }
+  to { transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes zoom-out-95 {
+  from { transform: translate(-50%, -50%) scale(1); }
+  to { transform: translate(-50%, -50%) scale(0.95); }
+}
+@keyframes slide-in-from-top {
+  from { transform: translate(-50%, -52%); }
+  to { transform: translate(-50%, -50%); }
+}
+@keyframes slide-out-to-top {
+  from { transform: translate(-50%, -50%); }
+  to { transform: translate(-50%, -52%); }
+}
+
+[data-state="open"].animate-in {
+  animation-fill-mode: forwards;
+}
+[data-state="closed"].animate-out {
+  animation-fill-mode: forwards;
+}
+
+.data-\[state\=open\]\:animate-in[data-state="open"],
+.data-\[state\=open\]\:fade-in-0[data-state="open"] {
+  animation: fade-in-0 0.2s ease-out;
+}
+.data-\[state\=closed\]\:animate-out[data-state="closed"],
+.data-\[state\=closed\]\:fade-out-0[data-state="closed"] {
+  animation: fade-out-0 0.15s ease-in;
+}
+.data-\[state\=open\]\:zoom-in-95[data-state="open"] {
+  animation: zoom-in-95 0.2s ease-out;
+}
+.data-\[state\=closed\]\:zoom-out-95[data-state="closed"] {
+  animation: zoom-out-95 0.15s ease-in;
+}
