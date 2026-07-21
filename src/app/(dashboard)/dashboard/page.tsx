@@ -7,11 +7,13 @@ import { CategoryBreakdown } from "@/components/dashboard/CategoryBreakdown";
 import { TransactionList } from "@/components/dashboard/TransactionList";
 import { AddTransactionModal } from "@/components/dashboard/AddTransactionModal";
 import { MonthSwitcher } from "@/components/dashboard/MonthSwitcher";
+import { ManageRecurringModal } from "@/components/dashboard/ManageRecurringModal";
 import {
   type Transaction,
   type Category,
   type CategorySpend,
   type MonthSummary,
+  type RecurringTransaction,
 } from "@/lib/types";
 import { getCurrentMonthYear } from "@/lib/utils";
 
@@ -58,6 +60,58 @@ export default function DashboardPage() {
     }
   }
 
+  /**
+   * Auto-seed recurring transactions for the selected month.
+   * Only inserts a recurring entry if no transaction from the same
+   * template already exists for this year+month.
+   */
+  async function seedRecurring(userId: string, yr: number, mo: number) {
+    // Fetch all active recurring templates
+    const { data: templates } = await supabase
+      .from("recurring_transactions")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("active", true);
+
+    if (!templates || templates.length === 0) return;
+
+    // Fetch which recurring_transaction_ids are already present this month
+    const { data: existing } = await supabase
+      .from("transactions")
+      .select("recurring_transaction_id")
+      .eq("user_id", userId)
+      .eq("year", yr)
+      .eq("month", mo)
+      .not("recurring_transaction_id", "is", null);
+
+    const seededIds = new Set(
+      (existing || []).map((t) => t.recurring_transaction_id)
+    );
+
+    // Build the date string for each template: YYYY-MM-DD
+    const toInsert = (templates as RecurringTransaction[])
+      .filter((t) => !seededIds.has(t.id))
+      .map((t) => {
+        // Clamp day to last day of month to be safe
+        const maxDay = new Date(yr, mo, 0).getDate();
+        const day = Math.min(t.day_of_month, maxDay);
+        const date = `${yr}-${String(mo).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        return {
+          user_id: userId,
+          category_id: t.category_id,
+          type: "expense" as const,
+          amount: t.amount,
+          description: t.description,
+          date,
+          recurring_transaction_id: t.id,
+        };
+      });
+
+    if (toInsert.length > 0) {
+      await supabase.from("transactions").insert(toInsert);
+    }
+  }
+
   const loadData = useCallback(async () => {
     setLoading(true);
 
@@ -68,6 +122,9 @@ export default function DashboardPage() {
 
     // Seed categories on first load
     await seedCategories(user.id);
+
+    // Auto-seed recurring transactions for this month
+    await seedRecurring(user.id, year, month);
 
     // Fetch categories
     const { data: cats } = await supabase
@@ -174,6 +231,10 @@ export default function DashboardPage() {
             year={year}
             month={month}
             onMonthChange={handleMonthChange}
+          />
+          <ManageRecurringModal
+            categories={categories}
+            onRecurringChanged={loadData}
           />
           <AddTransactionModal
             categories={categories}

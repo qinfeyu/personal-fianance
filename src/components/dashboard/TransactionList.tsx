@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { Trash2, ArrowUpRight, ArrowDownLeft, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -107,7 +107,7 @@ export function TransactionList({
                     <p className="text-sm font-medium text-white/90 truncate">
                       {tx.description || (isIncome ? "Income" : "Expense")}
                     </p>
-                    <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                       {category && (
                         <span
                           className="text-[10px] font-medium px-1.5 py-0.5 rounded-md"
@@ -117,6 +117,12 @@ export function TransactionList({
                           }}
                         >
                           {category.name}
+                        </span>
+                      )}
+                      {tx.recurring_transaction_id && (
+                        <span className="text-[10px] text-violet-400/70 flex items-center gap-0.5">
+                          <RefreshCw className="w-2.5 h-2.5" />
+                          recurring
                         </span>
                       )}
                       <span className="text-[10px] text-white/30">

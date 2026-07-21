@@ -34,10 +34,25 @@ export interface CategoryBudget {
   created_at: string;
 }
 
+export interface RecurringTransaction {
+  id: string;
+  user_id: string;
+  category_id: string | null;
+  description: string | null;
+  amount: number;
+  day_of_month: number;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  categories?: Category | null;
+}
+
 export interface Transaction {
   id: string;
   user_id: string;
   category_id: string | null;
+  recurring_transaction_id: string | null;
   type: "income" | "expense";
   amount: number;
   description: string | null;
