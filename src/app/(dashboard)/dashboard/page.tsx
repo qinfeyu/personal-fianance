@@ -8,6 +8,7 @@ import { TransactionList } from "@/components/dashboard/TransactionList";
 import { AddTransactionModal } from "@/components/dashboard/AddTransactionModal";
 import { MonthSwitcher } from "@/components/dashboard/MonthSwitcher";
 import { ManageRecurringModal } from "@/components/dashboard/ManageRecurringModal";
+import { LoansTracker } from "@/components/dashboard/LoansTracker";
 import {
   type Transaction,
   type Category,
@@ -264,6 +265,9 @@ export default function DashboardPage() {
           onRefresh={loadData}
         />
       </div>
+
+      {/* Loans tracker — full width */}
+      <LoansTracker />
     </div>
   );
 }

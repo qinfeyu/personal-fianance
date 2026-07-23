@@ -84,3 +84,29 @@ export interface TransactionFormData {
   description: string;
   date: string;
 }
+
+export type LoanStatus = "active" | "repaid" | "forgiven";
+
+export interface Loan {
+  id: string;
+  user_id: string;
+  borrower_name: string;
+  original_amount: number;
+  amount_repaid: number;
+  description: string | null;
+  date_lent: string;
+  due_date: string | null;
+  status: LoanStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LoanRepayment {
+  id: string;
+  loan_id: string;
+  user_id: string;
+  amount: number;
+  date: string;
+  notes: string | null;
+  created_at: string;
+}
