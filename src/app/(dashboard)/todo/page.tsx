@@ -11,27 +11,34 @@ import { Plus, Trash2, CheckCircle2, Circle, Loader2, ListTodo } from "lucide-re
 import { cn } from "@/lib/utils";
 
 export default function TodoPage() {
-  const supabase = createClient();
   const [todos, setTodos] = useState<Todo[]>([]);
   const [newTitle, setNewTitle] = useState("");
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const supabase = createClient();
 
   const fetchTodos = useCallback(async () => {
     setLoading(true);
+    setError(null);
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data } = await supabase
+    const { data, error: fetchError } = await supabase
       .from("todos")
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
-    setTodos((data as Todo[]) || []);
+    if (fetchError) {
+      setError(fetchError.message);
+    } else {
+      setTodos((data as Todo[]) || []);
+    }
     setLoading(false);
   }, [supabase]);
 
@@ -44,18 +51,25 @@ export default function TodoPage() {
     if (!newTitle.trim()) return;
 
     setAdding(true);
+    setError(null);
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setError("User not authenticated.");
+      setAdding(false);
+      return;
+    }
 
-    const { error } = await supabase.from("todos").insert({
+    const { error: insertError } = await supabase.from("todos").insert({
       user_id: user.id,
       title: newTitle.trim(),
       completed: false,
     });
 
-    if (!error) {
+    if (insertError) {
+      setError(insertError.message);
+    } else {
       setNewTitle("");
       await fetchTodos();
     }
@@ -64,12 +78,15 @@ export default function TodoPage() {
 
   async function handleToggleTodo(todo: Todo) {
     setActionId(todo.id);
-    const { error } = await supabase
+    setError(null);
+    const { error: updateError } = await supabase
       .from("todos")
       .update({ completed: !todo.completed })
       .eq("id", todo.id);
 
-    if (!error) {
+    if (updateError) {
+      setError(updateError.message);
+    } else {
       await fetchTodos();
     }
     setActionId(null);
@@ -77,8 +94,11 @@ export default function TodoPage() {
 
   async function handleDeleteTodo(id: string) {
     setActionId(id);
-    const { error } = await supabase.from("todos").delete().eq("id", id);
-    if (!error) {
+    setError(null);
+    const { error: deleteError } = await supabase.from("todos").delete().eq("id", id);
+    if (deleteError) {
+      setError(deleteError.message);
+    } else {
       await fetchTodos();
     }
     setActionId(null);
@@ -99,6 +119,13 @@ export default function TodoPage() {
           Track financial goals, bills to pay, or general reminders
         </p>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 text-sm">
+          {error}
+        </div>
+      )}
 
       {/* Quick Add Form */}
       <Card className="border-white/[0.08] bg-white/[0.03]">
