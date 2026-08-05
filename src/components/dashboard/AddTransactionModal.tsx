@@ -54,10 +54,11 @@ export function AddTransactionModal({
   const [open, setOpen] = useState(false);
   const supabase = createClient();
 
-  // Default date = first day of current selected month
-  const defaultDate = `${year}-${String(month).padStart(2, "0")}-${String(
-    new Date().getDate()
-  ).padStart(2, "0")}`;
+  // Default date = current day if we're viewing the current month, otherwise 1st day of the selected month
+  const now = new Date();
+  const isCurrentMonth = now.getFullYear() === year && (now.getMonth() + 1) === month;
+  const day = isCurrentMonth ? now.getDate() : 1;
+  const defaultDate = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
   const {
     register,
