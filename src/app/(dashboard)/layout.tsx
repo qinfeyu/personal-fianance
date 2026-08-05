@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Wallet, LogOut } from "lucide-react";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -40,14 +41,31 @@ export default async function DashboardLayout({
       {/* Top Navigation */}
       <header className="relative z-10 border-b border-white/[0.06] bg-[#07070f]/80 backdrop-blur-xl sticky top-0">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-600 to-purple-800 flex items-center justify-center shadow-lg shadow-violet-900/50">
-              <Wallet className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-white tracking-tight">
-              FinanceTracker
-            </span>
+          {/* Logo & Navigation */}
+          <div className="flex items-center gap-6">
+            <Link href="/dashboard" className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-600 to-purple-800 flex items-center justify-center shadow-lg shadow-violet-900/50">
+                <Wallet className="w-4 h-4 text-white" />
+              </div>
+              <span className="font-bold text-white tracking-tight">
+                FinanceTracker
+              </span>
+            </Link>
+
+            <nav className="flex items-center gap-4 border-l border-white/10 pl-4">
+              <Link
+                href="/dashboard"
+                className="text-xs sm:text-sm font-medium text-white/70 hover:text-white transition-colors"
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/todo"
+                className="text-xs sm:text-sm font-medium text-white/70 hover:text-white transition-colors"
+              >
+                To-Do List
+              </Link>
+            </nav>
           </div>
 
           {/* Right side */}

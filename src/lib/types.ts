@@ -110,3 +110,11 @@ export interface LoanRepayment {
   notes: string | null;
   created_at: string;
 }
+
+export interface Todo {
+  id: string;
+  user_id: string;
+  title: string;
+  completed: boolean;
+  created_at: string;
+}
