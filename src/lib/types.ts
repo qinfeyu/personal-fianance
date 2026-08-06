@@ -118,3 +118,32 @@ export interface Todo {
   completed: boolean;
   created_at: string;
 }
+
+export interface Habit {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+  // Dynamic fields
+  logs?: HabitLog[];
+}
+
+export interface HabitLog {
+  id: string;
+  habit_id: string;
+  user_id: string;
+  date: string; // YYYY-MM-DD
+  completed: boolean;
+  created_at: string;
+}
+
+export interface Goal {
+  id: string;
+  user_id: string;
+  title: string;
+  timeframe: "semester" | "year";
+  period: string; // e.g., '2026-S1', '2026-S2', '2026'
+  completed: boolean;
+  created_at: string;
+}

@@ -43,27 +43,39 @@ export default async function DashboardLayout({
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           {/* Logo & Navigation */}
           <div className="flex items-center gap-6">
-            <Link href="/dashboard" className="flex items-center gap-2.5">
+            <Link href="/dashboard" className="flex items-center gap-2.5 flex-shrink-0">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-600 to-purple-800 flex items-center justify-center shadow-lg shadow-violet-900/50">
                 <Wallet className="w-4 h-4 text-white" />
               </div>
-              <span className="font-bold text-white tracking-tight">
-                FinanceTracker
+              <span className="font-bold text-white tracking-tight hidden md:inline">
+                LifeOrganizer
               </span>
             </Link>
 
-            <nav className="flex items-center gap-4 border-l border-white/10 pl-4">
+            <nav className="flex items-center gap-3 sm:gap-4 border-l border-white/10 pl-3 sm:pl-4 overflow-x-auto scrollbar-none">
               <Link
                 href="/dashboard"
-                className="text-xs sm:text-sm font-medium text-white/70 hover:text-white transition-colors"
+                className="text-xs sm:text-sm font-medium text-white/70 hover:text-white transition-colors whitespace-nowrap"
               >
-                Dashboard
+                Finance
               </Link>
               <Link
                 href="/todo"
-                className="text-xs sm:text-sm font-medium text-white/70 hover:text-white transition-colors"
+                className="text-xs sm:text-sm font-medium text-white/70 hover:text-white transition-colors whitespace-nowrap"
               >
                 To-Do List
+              </Link>
+              <Link
+                href="/habits"
+                className="text-xs sm:text-sm font-medium text-white/70 hover:text-white transition-colors whitespace-nowrap"
+              >
+                Habit Tracker
+              </Link>
+              <Link
+                href="/goals"
+                className="text-xs sm:text-sm font-medium text-white/70 hover:text-white transition-colors whitespace-nowrap"
+              >
+                Goals
               </Link>
             </nav>
           </div>
