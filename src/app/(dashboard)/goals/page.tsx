@@ -17,6 +17,7 @@ import {
   Target,
   Calendar,
   Sparkles,
+  Layers,
 } from "lucide-react";
 import {
   Select,
@@ -30,19 +31,22 @@ export default function GoalsPage() {
   const supabase = createClient();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [newTitle, setNewTitle] = useState("");
-  const [timeframe, setTimeframe] = useState<"semester" | "year">("semester");
+  const [timeframe, setTimeframe] = useState<"semester" | "trimester" | "year">("semester");
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Compute current year and semester values for forms
+  // Compute current year, semester, and trimester values for forms
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1; // 1-12
   const currentSemester = currentMonth <= 6 ? 1 : 2;
+  const currentTrimester = currentMonth <= 4 ? 1 : currentMonth <= 8 ? 2 : 3;
 
   const defaultPeriod = timeframe === "semester"
     ? `${currentYear}-S${currentSemester}`
+    : timeframe === "trimester"
+    ? `${currentYear}-T${currentTrimester}`
     : `${currentYear}`;
 
   const [period, setPeriod] = useState(defaultPeriod);
@@ -52,9 +56,11 @@ export default function GoalsPage() {
     setPeriod(
       timeframe === "semester"
         ? `${currentYear}-S${currentSemester}`
+        : timeframe === "trimester"
+        ? `${currentYear}-T${currentTrimester}`
         : `${currentYear}`
     );
-  }, [timeframe, currentYear, currentSemester]);
+  }, [timeframe, currentYear, currentSemester, currentTrimester]);
 
   const fetchGoals = useCallback(async () => {
     setLoading(true);
@@ -144,6 +150,7 @@ export default function GoalsPage() {
 
   // Filter goals
   const semesterGoals = goals.filter((g) => g.timeframe === "semester");
+  const trimesterGoals = goals.filter((g) => g.timeframe === "trimester");
   const yearGoals = goals.filter((g) => g.timeframe === "year");
 
   // Statistics
@@ -160,7 +167,7 @@ export default function GoalsPage() {
             Goals Organizer
           </h1>
           <p className="text-white/40 text-sm mt-0.5">
-            Organize and track your life benchmarks by semester and year
+            Organize and track your benchmarks by semester, trimester, or year
           </p>
         </div>
 
@@ -198,13 +205,14 @@ export default function GoalsPage() {
               <div className="flex gap-2">
                 <Select
                   value={timeframe}
-                  onValueChange={(val: "semester" | "year") => setTimeframe(val)}
+                  onValueChange={(val: "semester" | "trimester" | "year") => setTimeframe(val)}
                 >
                   <SelectTrigger className="w-36">
                     <SelectValue placeholder="Timeframe" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="semester">Semester</SelectItem>
+                    <SelectItem value="trimester">Trimester</SelectItem>
                     <SelectItem value="year">Full Year</SelectItem>
                   </SelectContent>
                 </Select>
@@ -225,6 +233,21 @@ export default function GoalsPage() {
                         </SelectItem>
                         <SelectItem value={`${currentYear + 1}-S1`}>
                           {currentYear + 1} S1
+                        </SelectItem>
+                      </>
+                    ) : timeframe === "trimester" ? (
+                      <>
+                        <SelectItem value={`${currentYear}-T1`}>
+                          {currentYear} T1
+                        </SelectItem>
+                        <SelectItem value={`${currentYear}-T2`}>
+                          {currentYear} T2
+                        </SelectItem>
+                        <SelectItem value={`${currentYear}-T3`}>
+                          {currentYear} T3
+                        </SelectItem>
+                        <SelectItem value={`${currentYear + 1}-T1`}>
+                          {currentYear + 1} T1
                         </SelectItem>
                       </>
                     ) : (
@@ -255,8 +278,9 @@ export default function GoalsPage() {
       {/* Main Lists */}
       {loading ? (
         <div className="space-y-6">
-          <Card className="animate-pulse h-48 bg-white/5 rounded-xl border-white/[0.08]" />
-          <Card className="animate-pulse h-48 bg-white/5 rounded-xl border-white/[0.08]" />
+          <Card className="animate-pulse h-40 bg-white/5 rounded-xl border-white/[0.08]" />
+          <Card className="animate-pulse h-40 bg-white/5 rounded-xl border-white/[0.08]" />
+          <Card className="animate-pulse h-40 bg-white/5 rounded-xl border-white/[0.08]" />
         </div>
       ) : (
         <div className="space-y-6">
@@ -279,6 +303,80 @@ export default function GoalsPage() {
               ) : (
                 <div className="space-y-2">
                   {semesterGoals.map((goal) => {
+                    const isActioned = actionId === goal.id;
+                    return (
+                      <div
+                        key={goal.id}
+                        className={cn(
+                          "group flex items-center justify-between p-3 rounded-xl border transition-all duration-150",
+                          goal.completed
+                            ? "border-white/[0.04] bg-white/[0.01] opacity-60"
+                            : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.05]"
+                        )}
+                      >
+                        <div
+                          onClick={() => !isActioned && handleToggleGoal(goal)}
+                          className="flex items-center gap-3 flex-1 cursor-pointer min-w-0"
+                        >
+                          {isActioned ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-white/30" />
+                          ) : goal.completed ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                          ) : (
+                            <Circle className="w-4 h-4 text-white/30 hover:text-violet-400 transition-colors flex-shrink-0" />
+                          )}
+                          <div className="flex flex-col min-w-0">
+                            <span
+                              className={cn(
+                                "text-sm font-medium text-white/90 truncate",
+                                goal.completed && "line-through text-white/40"
+                              )}
+                            >
+                              {goal.title}
+                            </span>
+                            <span className="text-[10px] text-white/30 mt-0.5">
+                              Period: {goal.period}
+                            </span>
+                          </div>
+                        </div>
+
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-white/20 hover:text-red-400 hover:bg-red-500/10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2"
+                          onClick={() => handleDeleteGoal(goal.id)}
+                          disabled={isActioned}
+                          aria-label="Delete goal"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Trimester Goals */}
+          <Card className="border-white/[0.08] bg-white/[0.03]">
+            <CardHeader className="pb-3 border-b border-white/[0.06]">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Layers className="w-4 h-4 text-emerald-400" />
+                Trimester Goals
+                <Badge variant="outline" className="border-emerald-500/30 text-emerald-300 text-[10px]">
+                  {trimesterGoals.length} total
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {trimesterGoals.length === 0 ? (
+                <p className="text-center py-6 text-white/40 text-xs italic">
+                  No trimester goals added yet
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {trimesterGoals.map((goal) => {
                     const isActioned = actionId === goal.id;
                     return (
                       <div

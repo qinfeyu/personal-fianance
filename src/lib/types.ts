@@ -142,7 +142,7 @@ export interface Goal {
   id: string;
   user_id: string;
   title: string;
-  timeframe: "semester" | "year";
+  timeframe: "semester" | "trimester" | "year";
   period: string; // e.g., '2026-S1', '2026-S2', '2026'
   completed: boolean;
   created_at: string;
