@@ -38,11 +38,79 @@ export default async function DashboardLayout({
         <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-purple-900/10 rounded-full blur-[100px]" />
       </div>
 
-      {/* Sidebar for Desktop / Header for Mobile */}
-      <aside className="w-full md:w-64 border-b md:border-b-0 md:border-r border-white/[0.06] bg-[#090912]/80 backdrop-blur-xl flex flex-col justify-between p-4 md:p-6 md:sticky md:top-0 md:h-screen z-20 flex-shrink-0 relative">
-        <div className="flex flex-col md:h-full">
-          {/* Logo / Header */}
-          <div className="flex items-center justify-between md:justify-start gap-2.5 mb-4 md:mb-8 flex-shrink-0">
+      {/* MOBILE HEADER (Top) */}
+      <header className="md:hidden w-full border-b border-white/[0.06] bg-[#090912]/80 backdrop-blur-xl flex items-center justify-between p-4 sticky top-0 z-20 flex-shrink-0">
+        <Link href="/dashboard" className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-600 to-purple-800 flex items-center justify-center shadow-lg shadow-violet-900/50 flex-shrink-0">
+            <Wallet className="w-4 h-4 text-white" />
+          </div>
+          <span className="font-bold text-white tracking-tight text-base">
+            LifeOrganizer
+          </span>
+        </Link>
+
+        {/* Mobile logout */}
+        <form
+          action={async () => {
+            "use server";
+            const { createClient: createServerClient } = await import(
+              "@/lib/supabase/server"
+            );
+            const supabase = await createServerClient();
+            await supabase.auth.signOut();
+            const { redirect: serverRedirect } = await import(
+              "next/navigation"
+            );
+            serverRedirect("/login");
+          }}
+        >
+          <button
+            type="submit"
+            className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+            aria-label="Sign out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </form>
+      </header>
+
+      {/* MOBILE BOTTOM NAVIGATION BAR */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#090912]/95 backdrop-blur-md border-t border-white/[0.08] px-4 py-2 flex items-center justify-around">
+        <Link
+          href="/dashboard"
+          className="flex flex-col items-center gap-1 py-1 px-3 text-white/60 hover:text-white transition-colors"
+        >
+          <Wallet className="w-5 h-5 text-violet-400" />
+          <span className="text-[10px] font-medium">Finance</span>
+        </Link>
+        <Link
+          href="/todo"
+          className="flex flex-col items-center gap-1 py-1 px-3 text-white/60 hover:text-white transition-colors"
+        >
+          <ListTodo className="w-5 h-5 text-violet-400" />
+          <span className="text-[10px] font-medium">To-Do</span>
+        </Link>
+        <Link
+          href="/habits"
+          className="flex flex-col items-center gap-1 py-1 px-3 text-white/60 hover:text-white transition-colors"
+        >
+          <Flame className="w-5 h-5 text-violet-400" />
+          <span className="text-[10px] font-medium">Habits</span>
+        </Link>
+        <Link
+          href="/goals"
+          className="flex flex-col items-center gap-1 py-1 px-3 text-white/60 hover:text-white transition-colors"
+        >
+          <Target className="w-5 h-5 text-violet-400" />
+          <span className="text-[10px] font-medium">Goals</span>
+        </Link>
+      </div>
+
+      {/* DESKTOP SIDEBAR */}
+      <aside className="hidden md:flex w-64 border-r border-white/[0.06] bg-[#090912]/80 backdrop-blur-xl flex-col justify-between p-6 sticky top-0 h-screen z-20 flex-shrink-0">
+        <div className="flex flex-col h-full">
+          {/* Logo */}
+          <div className="flex items-center gap-2.5 mb-8 flex-shrink-0">
             <Link href="/dashboard" className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-600 to-purple-800 flex items-center justify-center shadow-lg shadow-violet-900/50 flex-shrink-0">
                 <Wallet className="w-4 h-4 text-white" />
@@ -51,59 +119,34 @@ export default async function DashboardLayout({
                 LifeOrganizer
               </span>
             </Link>
-
-            {/* Logout on mobile */}
-            <form
-              action={async () => {
-                "use server";
-                const { createClient: createServerClient } = await import(
-                  "@/lib/supabase/server"
-                );
-                const supabase = await createServerClient();
-                await supabase.auth.signOut();
-                const { redirect: serverRedirect } = await import(
-                  "next/navigation"
-                );
-                serverRedirect("/login");
-              }}
-              className="md:hidden"
-            >
-              <button
-                type="submit"
-                className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
-                aria-label="Sign out"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </form>
           </div>
 
           {/* Navigation Links */}
-          <nav className="flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 scrollbar-none flex-shrink-0">
+          <nav className="flex flex-col gap-1 flex-shrink-0">
             <Link
               href="/dashboard"
-              className="flex items-center gap-3 px-3 py-2 md:py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all duration-150 whitespace-nowrap"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all duration-150"
             >
               <Wallet className="w-4 h-4 text-violet-400" />
               <span>Finance</span>
             </Link>
             <Link
               href="/todo"
-              className="flex items-center gap-3 px-3 py-2 md:py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all duration-150 whitespace-nowrap"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all duration-150"
             >
               <ListTodo className="w-4 h-4 text-violet-400" />
               <span>To-Do List</span>
             </Link>
             <Link
               href="/habits"
-              className="flex items-center gap-3 px-3 py-2 md:py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all duration-150 whitespace-nowrap"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all duration-150"
             >
               <Flame className="w-4 h-4 text-violet-400" />
               <span>Habit Tracker</span>
             </Link>
             <Link
               href="/goals"
-              className="flex items-center gap-3 px-3 py-2 md:py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all duration-150 whitespace-nowrap"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all duration-150"
             >
               <Target className="w-4 h-4 text-violet-400" />
               <span>Goals</span>
@@ -112,7 +155,7 @@ export default async function DashboardLayout({
         </div>
 
         {/* Footer Area for Desktop */}
-        <div className="hidden md:flex flex-col gap-4 border-t border-white/10 pt-4 mt-auto">
+        <div className="flex flex-col gap-4 border-t border-white/10 pt-4 mt-auto">
           <div className="flex items-center gap-2 px-1">
             <div className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400">
               <User className="w-4 h-4" />
@@ -151,7 +194,7 @@ export default async function DashboardLayout({
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 relative z-10 p-4 sm:p-6 md:p-8 max-w-5xl mx-auto w-full overflow-y-auto">
+      <main className="flex-1 relative z-10 p-4 sm:p-6 md:p-8 max-w-5xl mx-auto w-full overflow-y-auto pb-24 md:pb-8">
         {children}
       </main>
     </div>
