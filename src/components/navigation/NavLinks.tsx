@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Flame, ListTodo, Target, Wallet } from "lucide-react";
+import { Dumbbell, Flame, ListTodo, Target, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -10,6 +10,7 @@ const links = [
   { href: "/todo", label: "To-Do List", shortLabel: "To-Do", icon: ListTodo },
   { href: "/habits", label: "Habit Tracker", shortLabel: "Habits", icon: Flame },
   { href: "/goals", label: "Goals", shortLabel: "Goals", icon: Target },
+  { href: "/gym", label: "Gym Log", shortLabel: "Gym", icon: Dumbbell },
 ] as const;
 
 interface NavLinksProps {

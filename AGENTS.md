@@ -33,10 +33,11 @@ Next.js 16 App Router + Supabase (auth/Postgres/RLS), Tailwind v4, shadcn-style 
 - All tables have RLS; most are scoped by `user_id`, `profiles` by `id`. New tables need RLS plus a `user_id` index. `habit_logs` is unique on `(habit_id, date)`.
 - Goals: `timeframe` is `semester | trimester | year`; periods are `YYYY-S1|S2`, `YYYY-T1|T2|T3` (T1 Jan–Apr, T2 May–Aug, T3 Sep–Dec), `YYYY`.
 - `formatCurrency` is EUR (de-DE); `formatDate` appends `T00:00:00` to parse date-only strings in local time.
-- Navigation is duplicated in `src/app/(dashboard)/layout.tsx` (desktop sidebar + mobile bottom bar) — add new pages to both.
+- Gym log: four reusable day slots, exercises per day, and dated sessions with per-set weight (kg) and reps. `src/hooks/useGym.ts` uses one `["gym", userId]` query, seeds the four days via `ensure_workout_days()` with a client fallback, and saves sessions atomically through `save_workout_session()` (also with a fallback). Set data is fetched as a nested `workout_sets` embed; `src/lib/gym.ts` derives last-session and personal-best summaries.
+- Navigation is centralized in `src/components/navigation/NavLinks.tsx` (desktop sidebar + mobile bottom bar) — add new pages there.
 
 ## Database migrations
-- No migration toolchain; apply root SQL files manually in the Supabase SQL Editor. Order: `supabase_schema.sql` → `supabase_habits_goals_migration.sql` → `supabase_trimester_migration.sql` (replaces the `goals_timeframe_check` constraint, so it must run after habits_goals) → `supabase_loans_migration.sql` / `supabase_recurring_migration.sql` / `supabase_todo_migration.sql` → `supabase_performance_migration.sql` last (it indexes todos/goals/loans and assumes recurring/loans exist).
+- No migration toolchain; apply root SQL files manually in the Supabase SQL Editor. Order: `supabase_schema.sql` → `supabase_habits_goals_migration.sql` → `supabase_trimester_migration.sql` (replaces the `goals_timeframe_check` constraint, so it must run after habits_goals) → `supabase_loans_migration.sql` / `supabase_recurring_migration.sql` / `supabase_todo_migration.sql` / `supabase_gym_migration.sql` → `supabase_performance_migration.sql` last (it indexes todos/goals/loans and assumes recurring/loans exist).
 - `supabase_performance_migration.sql` adds: idempotent `seed_default_categories`, `ensure_month_ready(year, month)`, atomic `record_loan_repayment`, `recurring_transaction_dismissals`, a unique partial index on recurring transactions, and list indexes. The app detects missing RPCs and falls back, so the app still runs before this migration is applied.
 - Add new features as `supabase_<name>_migration.sql` matching existing style (RLS + indexes), and mirror new row shapes in `src/lib/types.ts`.
 

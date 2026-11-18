@@ -155,3 +155,58 @@ export interface Goal {
   completed: boolean;
   created_at: string;
 }
+
+export interface WorkoutDay {
+  id: string;
+  user_id: string;
+  name: string;
+  sort_order: number;
+  created_at: string;
+  // Joined fields
+  workout_exercises?: WorkoutExercise[];
+}
+
+export interface WorkoutExercise {
+  id: string;
+  user_id: string;
+  workout_day_id: string;
+  name: string;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface WorkoutSession {
+  id: string;
+  user_id: string;
+  workout_day_id: string;
+  date: string;
+  notes: string | null;
+  created_at: string;
+  // Joined fields
+  workout_sets?: WorkoutSet[];
+}
+
+export interface WorkoutSet {
+  id: string;
+  user_id: string;
+  session_id: string;
+  exercise_id: string | null;
+  set_number: number;
+  weight: number;
+  reps: number;
+  created_at: string;
+}
+
+export interface SetInput {
+  exercise_id: string;
+  set_number: number;
+  weight: number;
+  reps: number;
+}
+
+export interface SaveSessionInput {
+  dayId: string;
+  date: string;
+  notes: string | null;
+  sets: SetInput[];
+}

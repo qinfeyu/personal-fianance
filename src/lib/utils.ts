@@ -18,8 +18,18 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
   year: "numeric",
 });
 
+const weightFormatter = new Intl.NumberFormat("de-DE", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+
 export function formatCurrency(amount: number): string {
   return currencyFormatter.format(amount);
+}
+
+/** Lifting weights are always shown in kilograms. */
+export function formatWeight(kg: number): string {
+  return `${weightFormatter.format(kg)} kg`;
 }
 
 function rawErrorMessage(error: unknown): string {

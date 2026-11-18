@@ -9,4 +9,5 @@ export const queryKeys = {
   loans: (userId: string) => ["loans", userId] as const,
   loanRepayments: (userId: string) => ["loan-repayments", userId] as const,
   recurring: (userId: string) => ["recurring", userId] as const,
+  gym: (userId: string) => ["gym", userId] as const,
 };
