@@ -201,7 +201,7 @@ export default function OverviewPage() {
   const trackedExercises = countLoggedExercises(sessions);
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
           <LayoutDashboard className="w-6 h-6 text-violet-400" />
@@ -212,7 +212,7 @@ export default function OverviewPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 xl:gap-5 2xl:gap-6">
         {/* Finance */}
         <OverviewCard
           title="Finance"

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Wallet, LogOut, User } from "lucide-react";
 import Link from "next/link";
 import { NavLinks } from "@/components/navigation/NavLinks";
+import { DashboardMain } from "@/components/layout/DashboardMain";
 import { signOut } from "./actions";
 import { UserIdProvider } from "@/lib/user-context";
 
@@ -118,9 +119,9 @@ export default async function DashboardLayout({
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 relative z-10 p-4 sm:p-6 md:p-8 max-w-5xl mx-auto w-full pb-24 md:pb-8">
+      <DashboardMain>
         <UserIdProvider userId={user.id}>{children}</UserIdProvider>
-      </main>
+      </DashboardMain>
     </div>
   );
 }
