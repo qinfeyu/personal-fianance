@@ -2,10 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Dumbbell, Flame, ListTodo, Target, Wallet } from "lucide-react";
+import {
+  Dumbbell,
+  Flame,
+  LayoutDashboard,
+  ListTodo,
+  Target,
+  Wallet,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
+  {
+    href: "/overview",
+    label: "Overview",
+    shortLabel: "Home",
+    icon: LayoutDashboard,
+  },
   { href: "/dashboard", label: "Finance", shortLabel: "Finance", icon: Wallet },
   { href: "/todo", label: "To-Do List", shortLabel: "To-Do", icon: ListTodo },
   { href: "/habits", label: "Habit Tracker", shortLabel: "Habits", icon: Flame },
@@ -39,7 +52,7 @@ export function NavLinks({ variant }: NavLinksProps) {
               href={href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex flex-col items-center gap-1 py-1 px-3 transition-colors",
+                "flex flex-col items-center gap-1 py-1 px-2 transition-colors",
                 active ? "text-white" : "text-white/60 hover:text-white"
               )}
             >

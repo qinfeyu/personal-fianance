@@ -34,6 +34,7 @@ Next.js 16 App Router + Supabase (auth/Postgres/RLS), Tailwind v4, shadcn-style 
 - Goals: `timeframe` is `semester | trimester | year`; periods are `YYYY-S1|S2`, `YYYY-T1|T2|T3` (T1 Jan–Apr, T2 May–Aug, T3 Sep–Dec), `YYYY`.
 - `formatCurrency` is EUR (de-DE); `formatDate` appends `T00:00:00` to parse date-only strings in local time.
 - Gym log: four reusable day slots, exercises per day, and dated sessions with per-set weight (kg) and reps. `src/hooks/useGym.ts` uses one `["gym", userId]` query, seeds the four days via `ensure_workout_days()` with a client fallback, and saves sessions atomically through `save_workout_session()` (also with a fallback). Set data is fetched as a nested `workout_sets` embed; `src/lib/gym.ts` derives last-session and personal-best summaries.
+- The root page redirects to `/overview`, a read-only summary built from the existing module hooks; pure derivations live in `src/lib/overview.ts`.
 - Navigation is centralized in `src/components/navigation/NavLinks.tsx` (desktop sidebar + mobile bottom bar) — add new pages there.
 
 ## Database migrations
