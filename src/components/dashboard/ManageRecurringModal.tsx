@@ -316,7 +316,7 @@ export function ManageRecurringModal({
 
               {/* Category */}
               <div className="space-y-1.5">
-                <Label>Category</Label>
+                <Label htmlFor="recurring-category">Category</Label>
                 <Select
                   value={selectedCategoryId}
                   onValueChange={(v) => setValue("category_id", v)}
@@ -342,7 +342,7 @@ export function ManageRecurringModal({
 
               {/* Description */}
               <div className="space-y-1.5">
-                <Label>
+                <Label htmlFor="recurring-description">
                   Description{" "}
                   <span className="text-white/30 font-normal">(optional)</span>
                 </Label>
@@ -356,7 +356,7 @@ export function ManageRecurringModal({
               {/* Amount + Day of month */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label>Amount (€)</Label>
+                  <Label htmlFor="recurring-amount">Amount (€)</Label>
                   <div className="relative">
                     <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                     <Input
@@ -375,7 +375,7 @@ export function ManageRecurringModal({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label>Day of Month</Label>
+                  <Label htmlFor="recurring-day">Day of Month</Label>
                   <Input
                     id="recurring-day"
                     type="number"

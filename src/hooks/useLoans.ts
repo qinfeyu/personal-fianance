@@ -231,7 +231,7 @@ export function useRecordRepayment() {
         variant: "success",
       });
     },
-    onSettled: (_data, _error, input) => {
+    onSettled: () => {
       // The optimistic balance is authoritative. The repayment list has no
       // optimistic update, so that query still refetches normally.
       void queryClient.invalidateQueries({
@@ -239,7 +239,7 @@ export function useRecordRepayment() {
         refetchType: "none",
       });
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.loanRepayments(userId, input.loan.id),
+        queryKey: queryKeys.loanRepayments(userId),
       });
     },
   });
@@ -333,18 +333,18 @@ export function useDeleteLoan() {
   });
 }
 
-export function useLoanRepayments(loanId: string, enabled: boolean) {
+/** One query for every repayment, shared by all expanded loan cards. */
+export function useAllLoanRepayments(enabled = true) {
   const userId = useUserId();
   const supabase = createClient();
 
   return useQuery({
-    queryKey: queryKeys.loanRepayments(userId, loanId),
+    queryKey: queryKeys.loanRepayments(userId),
     enabled,
     queryFn: async (): Promise<LoanRepayment[]> => {
       const { data, error } = await supabase
         .from("loan_repayments")
-        .select("*")
-        .eq("loan_id", loanId)
+        .select("id,loan_id,user_id,amount,date,notes,created_at")
         .eq("user_id", userId)
         .order("date", { ascending: false });
 

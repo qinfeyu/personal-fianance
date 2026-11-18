@@ -7,7 +7,6 @@ export const queryKeys = {
   habits: (userId: string, start: string, end: string) =>
     ["habits", userId, start, end] as const,
   loans: (userId: string) => ["loans", userId] as const,
-  loanRepayments: (userId: string, loanId: string) =>
-    ["loan-repayments", userId, loanId] as const,
+  loanRepayments: (userId: string) => ["loan-repayments", userId] as const,
   recurring: (userId: string) => ["recurring", userId] as const,
 };

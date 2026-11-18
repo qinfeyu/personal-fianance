@@ -26,9 +26,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   useAddLoan,
+  useAllLoanRepayments,
   useDeleteLoan,
   useForgiveLoan,
-  useLoanRepayments,
   useLoans,
   useRecordRepayment,
 } from "@/hooks/useLoans";
@@ -373,8 +373,10 @@ function RepaymentForm({
 // ─── Repayment History (expandable per loan) ──────────────────────────────────
 
 function RepaymentHistory({ loanId }: { loanId: string }) {
-  const repaymentsQuery = useLoanRepayments(loanId, true);
-  const repayments = repaymentsQuery.data ?? [];
+  const repaymentsQuery = useAllLoanRepayments();
+  const repayments = (repaymentsQuery.data ?? []).filter(
+    (repayment) => repayment.loan_id === loanId
+  );
 
   if (repaymentsQuery.isLoading) {
     return <div className="h-8 animate-pulse bg-white/5 rounded-lg mt-2" />;
