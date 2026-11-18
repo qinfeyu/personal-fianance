@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus, Loader2, Euro } from "lucide-react";
@@ -24,13 +24,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { createClient } from "@/lib/supabase/client";
+import { useAddTransaction } from "@/hooks/useDashboard";
 import { type Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const schema = z.object({
   type: z.enum(["income", "expense"]),
-  amount: z.string().min(1, "Amount is required"),
+  amount: z.coerce.number().positive("Amount must be greater than 0"),
   category_id: z.string().optional(),
   description: z.string().optional(),
   date: z.string().min(1, "Date is required"),
@@ -42,28 +42,31 @@ interface AddTransactionModalProps {
   categories: Category[];
   year: number;
   month: number;
-  onSuccess: () => void;
 }
 
 export function AddTransactionModal({
   categories,
   year,
   month,
-  onSuccess,
 }: AddTransactionModalProps) {
   const [open, setOpen] = useState(false);
-  const supabase = createClient();
+  const addTransaction = useAddTransaction(year, month);
 
   // Default date = current day if we're viewing the current month, otherwise 1st day of the selected month
   const now = new Date();
   const isCurrentMonth = now.getFullYear() === year && (now.getMonth() + 1) === month;
   const day = isCurrentMonth ? now.getDate() : 1;
   const defaultDate = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  const monthPrefix = defaultDate.slice(0, 7);
+  const lastDay = new Date(year, month, 0).getDate();
+  const maxDate = isCurrentMonth
+    ? defaultDate
+    : `${monthPrefix}-${String(lastDay).padStart(2, "0")}`;
 
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     setValue,
     reset,
     formState: { errors, isSubmitting },
@@ -75,38 +78,41 @@ export function AddTransactionModal({
     },
   });
 
-  const selectedType = watch("type");
+  const selectedType = useWatch({ control, name: "type" });
 
   async function onSubmit(data: FormValues) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    const category = categories.find((item) => item.id === data.category_id);
 
-    const parsedAmount = parseFloat(data.amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) return;
+    try {
+      await addTransaction.mutateAsync({
+        type: data.type,
+        amount: data.amount,
+        category_id:
+          data.type === "income" || !data.category_id
+            ? null
+            : data.category_id,
+        description: data.description || null,
+        date: data.date,
+        category: category ?? null,
+      });
 
-    const { error } = await supabase.from("transactions").insert({
-      user_id: user.id,
-      type: data.type,
-      amount: parsedAmount,
-      category_id:
-        data.type === "income" || !data.category_id
-          ? null
-          : data.category_id,
-      description: data.description || null,
-      date: data.date,
-    });
-
-    if (!error) {
       reset({ type: "expense", date: defaultDate });
       setOpen(false);
-      onSuccess();
+    } catch {
+      // The mutation surfaces its own error toast.
+    }
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+
+    if (nextOpen) {
+      reset({ type: "expense", date: defaultDate });
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button id="add-transaction-btn" className="gap-2 shadow-lg shadow-violet-900/30">
           <Plus className="w-4 h-4" />
@@ -198,6 +204,8 @@ export function AddTransactionModal({
               type="date"
               {...register("date")}
               className="[color-scheme:dark]"
+              min={`${monthPrefix}-01`}
+              max={maxDate}
             />
             {errors.date && (
               <p className="text-red-400 text-xs">{errors.date.message}</p>

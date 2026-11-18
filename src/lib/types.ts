@@ -70,6 +70,14 @@ export interface MonthSummary {
   remaining: number;
 }
 
+export interface DashboardData {
+  categories: Category[];
+  transactions: Transaction[];
+  budgets: Record<string, number>;
+  categorySpends: CategorySpend[];
+  summary: MonthSummary;
+}
+
 export interface CategorySpend {
   category: Category;
   totalSpent: number;

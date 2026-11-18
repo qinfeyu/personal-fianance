@@ -5,22 +5,56 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+const currencyFormatter = new Intl.NumberFormat("de-DE", {
+  style: "currency",
+  currency: "EUR",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+const dateFormatter = new Intl.DateTimeFormat("en-GB", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+});
+
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("de-DE", {
-    style: "currency",
-    currency: "EUR",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
+  return currencyFormatter.format(amount);
+}
+
+/** Turns low-level Supabase/network errors into messages safe to show in the UI. */
+export function friendlyErrorMessage(error: unknown, context: string): string {
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (/failed to fetch|network|fetch failed|load failed/i.test(message)) {
+    return `${context} Check your connection and try again.`;
+  }
+  if (/jwt|session|refresh token|401/i.test(message)) {
+    return "Your session expired. Please sign in again.";
+  }
+  if (/permission|row-level|rls|403/i.test(message)) {
+    return "You don't have permission to do that.";
+  }
+  return `${context} Please try again.`;
+}
+
+export function parseLocalDate(dateStr: string): Date {
+  return new Date(dateStr + "T00:00:00");
 }
 
 export function formatDate(dateStr: string): string {
-  const date = new Date(dateStr + "T00:00:00");
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
+  return dateFormatter.format(parseLocalDate(dateStr));
+}
+
+export function formatDateInput(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+export function getTodayLocal(): string {
+  return formatDateInput(new Date());
 }
 
 export function getMonthName(month: number): string {

@@ -1,107 +1,51 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { type Todo } from "@/lib/types";
+import {
+  useAddTodo,
+  useDeleteTodo,
+  useTodos,
+  useToggleTodo,
+} from "@/hooks/useTodos";
 import { Plus, Trash2, CheckCircle2, Circle, Loader2, ListTodo } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, friendlyErrorMessage } from "@/lib/utils";
 
 export default function TodoPage() {
-  const [todos, setTodos] = useState<Todo[]>([]);
   const [newTitle, setNewTitle] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [adding, setAdding] = useState(false);
-  const [actionId, setActionId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  const supabase = createClient();
+  const todosQuery = useTodos();
+  const addTodo = useAddTodo();
+  const toggleTodo = useToggleTodo();
+  const deleteTodo = useDeleteTodo();
 
-  const fetchTodos = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data, error: fetchError } = await supabase
-      .from("todos")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (fetchError) {
-      setError(fetchError.message);
-    } else {
-      setTodos((data as Todo[]) || []);
-    }
-    setLoading(false);
-  }, [supabase]);
-
-  useEffect(() => {
-    fetchTodos();
-  }, [fetchTodos]);
+  const todos = todosQuery.data ?? [];
+  const loading = todosQuery.isLoading;
+  const adding = addTodo.isPending;
 
   async function handleAddTodo(e: React.FormEvent) {
     e.preventDefault();
-    if (!newTitle.trim()) return;
+    const title = newTitle.trim();
 
-    setAdding(true);
-    setError(null);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setError("User not authenticated.");
-      setAdding(false);
-      return;
-    }
+    if (!title) return;
 
-    const { error: insertError } = await supabase.from("todos").insert({
-      user_id: user.id,
-      title: newTitle.trim(),
-      completed: false,
-    });
-
-    if (insertError) {
-      setError(insertError.message);
-    } else {
+    try {
+      await addTodo.mutateAsync(title);
       setNewTitle("");
-      await fetchTodos();
+    } catch {
+      // The mutation surfaces its own error toast.
     }
-    setAdding(false);
   }
 
-  async function handleToggleTodo(todo: Todo) {
-    setActionId(todo.id);
-    setError(null);
-    const { error: updateError } = await supabase
-      .from("todos")
-      .update({ completed: !todo.completed })
-      .eq("id", todo.id);
-
-    if (updateError) {
-      setError(updateError.message);
-    } else {
-      await fetchTodos();
-    }
-    setActionId(null);
+  function handleToggleTodo(todo: (typeof todos)[number]) {
+    toggleTodo.mutate(todo);
   }
 
-  async function handleDeleteTodo(id: string) {
-    setActionId(id);
-    setError(null);
-    const { error: deleteError } = await supabase.from("todos").delete().eq("id", id);
-    if (deleteError) {
-      setError(deleteError.message);
-    } else {
-      await fetchTodos();
-    }
-    setActionId(null);
+  function handleDeleteTodo(todo: (typeof todos)[number]) {
+    deleteTodo.mutate(todo);
   }
 
   const completedCount = todos.filter((t) => t.completed).length;
@@ -121,9 +65,9 @@ export default function TodoPage() {
       </div>
 
       {/* Error Message */}
-      {error && (
+      {todosQuery.error && (
         <div className="rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 text-sm">
-          {error}
+          {friendlyErrorMessage(todosQuery.error, "Couldn't load your tasks.")}
         </div>
       )}
 
@@ -189,7 +133,13 @@ export default function TodoPage() {
           ) : (
             <div className="space-y-1">
               {todos.map((todo) => {
-                const isActioned = actionId === todo.id;
+                const isToggling =
+                  toggleTodo.isPending &&
+                  toggleTodo.variables?.id === todo.id;
+                const isDeleting =
+                  deleteTodo.isPending &&
+                  deleteTodo.variables?.id === todo.id;
+                const isActioned = isToggling || isDeleting;
                 return (
                   <div
                     key={todo.id}
@@ -200,11 +150,13 @@ export default function TodoPage() {
                         : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.05]"
                     )}
                   >
-                    <div
-                      onClick={() => !isActioned && handleToggleTodo(todo)}
-                      className="flex items-center gap-3 flex-1 cursor-pointer min-w-0"
+                    <button
+                      type="button"
+                      onClick={() => handleToggleTodo(todo)}
+                      disabled={isActioned}
+                      className="flex items-center gap-3 flex-1 cursor-pointer min-w-0 text-left"
                     >
-                      {isActioned && actionId === todo.id ? (
+                      {isToggling || isDeleting ? (
                         <Loader2 className="w-5 h-5 animate-spin text-white/30" />
                       ) : todo.completed ? (
                         <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
@@ -219,13 +171,13 @@ export default function TodoPage() {
                       >
                         {todo.title}
                       </span>
-                    </div>
+                    </button>
 
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-white/20 hover:text-red-400 hover:bg-red-500/10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2"
-                      onClick={() => handleDeleteTodo(todo.id)}
+                      onClick={() => handleDeleteTodo(todo)}
                       disabled={isActioned}
                       aria-label="Delete task"
                     >

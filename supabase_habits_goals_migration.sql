@@ -14,6 +14,8 @@ create table if not exists public.habits (
 
 alter table public.habits enable row level security;
 
+drop policy if exists "Users can manage own habits" on public.habits;
+
 create policy "Users can manage own habits"
   on public.habits for all
   using (auth.uid() = user_id)
@@ -31,6 +33,8 @@ create table if not exists public.habit_logs (
 );
 
 alter table public.habit_logs enable row level security;
+
+drop policy if exists "Users can manage own habit logs" on public.habit_logs;
 
 create policy "Users can manage own habit logs"
   on public.habit_logs for all
@@ -52,6 +56,8 @@ create table if not exists public.goals (
 );
 
 alter table public.goals enable row level security;
+
+drop policy if exists "Users can manage own goals" on public.goals;
 
 create policy "Users can manage own goals"
   on public.goals for all

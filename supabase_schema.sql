@@ -18,14 +18,17 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
+drop policy if exists "Users can view own profile" on public.profiles;
 create policy "Users can view own profile"
   on public.profiles for select
   using (auth.uid() = id);
 
+drop policy if exists "Users can insert own profile" on public.profiles;
 create policy "Users can insert own profile"
   on public.profiles for insert
   with check (auth.uid() = id);
 
+drop policy if exists "Users can update own profile" on public.profiles;
 create policy "Users can update own profile"
   on public.profiles for update
   using (auth.uid() = id);
@@ -63,6 +66,8 @@ create table if not exists public.categories (
 
 alter table public.categories enable row level security;
 
+drop policy if exists "Users can manage own categories" on public.categories;
+
 create policy "Users can manage own categories"
   on public.categories for all
   using (auth.uid() = user_id)
@@ -82,6 +87,8 @@ create table if not exists public.months (
 );
 
 alter table public.months enable row level security;
+
+drop policy if exists "Users can manage own months" on public.months;
 
 create policy "Users can manage own months"
   on public.months for all
@@ -103,6 +110,9 @@ create table if not exists public.category_budgets (
 );
 
 alter table public.category_budgets enable row level security;
+
+drop policy if exists "Users can manage own category budgets"
+  on public.category_budgets;
 
 create policy "Users can manage own category budgets"
   on public.category_budgets for all
@@ -127,6 +137,9 @@ create table if not exists public.transactions (
 );
 
 alter table public.transactions enable row level security;
+
+drop policy if exists "Users can manage own transactions"
+  on public.transactions;
 
 create policy "Users can manage own transactions"
   on public.transactions for all

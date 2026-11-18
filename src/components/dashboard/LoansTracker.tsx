@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -23,9 +23,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createClient } from "@/lib/supabase/client";
-import { type Loan, type LoanRepayment } from "@/lib/types";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import {
+  useAddLoan,
+  useDeleteLoan,
+  useForgiveLoan,
+  useLoanRepayments,
+  useLoans,
+  useRecordRepayment,
+} from "@/hooks/useLoans";
+import { type Loan } from "@/lib/types";
+import { formatCurrency, formatDate, friendlyErrorMessage, getTodayLocal } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 // ─── Zod Schemas ─────────────────────────────────────────────────────────────
@@ -81,7 +88,7 @@ function getLoanStatus(loan: Loan): {
     };
   }
   if (loan.due_date) {
-    const isOverdue = new Date(loan.due_date) < new Date();
+    const isOverdue = loan.due_date < getTodayLocal();
     return {
       label: isOverdue ? "Overdue" : "Due " + formatDate(loan.due_date),
       color: isOverdue ? "text-red-400" : "text-orange-400",
@@ -110,8 +117,8 @@ function AddLoanForm({
   onSaved: () => void;
   onCancel: () => void;
 }) {
-  const supabase = createClient();
-  const today = new Date().toISOString().split("T")[0];
+  const today = getTodayLocal();
+  const addLoan = useAddLoan();
 
   const {
     register,
@@ -126,22 +133,19 @@ function AddLoanForm({
     const parsedAmount = parseFloat(data.amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) return;
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      await addLoan.mutateAsync({
+        borrower_name: data.borrower_name.trim(),
+        original_amount: parsedAmount,
+        description: data.description?.trim() || null,
+        date_lent: data.date_lent,
+        due_date: data.due_date || null,
+      });
 
-    await supabase.from("loans").insert({
-      user_id: user.id,
-      borrower_name: data.borrower_name.trim(),
-      original_amount: parsedAmount,
-      description: data.description?.trim() || null,
-      date_lent: data.date_lent,
-      due_date: data.due_date || null,
-      status: "active",
-    });
-
-    onSaved();
+      onSaved();
+    } catch {
+      // The mutation surfaces its own error toast.
+    }
   }
 
   return (
@@ -254,9 +258,9 @@ function RepaymentForm({
   onSaved: () => void;
   onCancel: () => void;
 }) {
-  const supabase = createClient();
   const outstanding = loan.original_amount - loan.amount_repaid;
-  const today = new Date().toISOString().split("T")[0];
+  const today = getTodayLocal();
+  const recordRepayment = useRecordRepayment();
 
   const {
     register,
@@ -274,36 +278,18 @@ function RepaymentForm({
     const parsedAmount = parseFloat(data.amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) return;
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      await recordRepayment.mutateAsync({
+        loan,
+        amount: parsedAmount,
+        date: data.date,
+        notes: data.notes?.trim() || null,
+      });
 
-    // Clamp to outstanding
-    const clamped = Math.min(parsedAmount, outstanding);
-    const newRepaid = loan.amount_repaid + clamped;
-    const isFullyRepaid = newRepaid >= loan.original_amount;
-
-    // Insert repayment record
-    await supabase.from("loan_repayments").insert({
-      loan_id: loan.id,
-      user_id: user.id,
-      amount: clamped,
-      date: data.date,
-      notes: data.notes?.trim() || null,
-    });
-
-    // Update loan
-    await supabase
-      .from("loans")
-      .update({
-        amount_repaid: newRepaid,
-        status: isFullyRepaid ? "repaid" : "active",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", loan.id);
-
-    onSaved();
+      onSaved();
+    } catch {
+      // The mutation surfaces its own error toast.
+    }
   }
 
   return (
@@ -386,25 +372,20 @@ function RepaymentForm({
 // ─── Repayment History (expandable per loan) ──────────────────────────────────
 
 function RepaymentHistory({ loanId }: { loanId: string }) {
-  const supabase = createClient();
-  const [repayments, setRepayments] = useState<LoanRepayment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const repaymentsQuery = useLoanRepayments(loanId, true);
+  const repayments = repaymentsQuery.data ?? [];
 
-  useEffect(() => {
-    async function fetch() {
-      const { data } = await supabase
-        .from("loan_repayments")
-        .select("*")
-        .eq("loan_id", loanId)
-        .order("date", { ascending: false });
-      setRepayments(data || []);
-      setLoading(false);
-    }
-    fetch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loanId]);
+  if (repaymentsQuery.isLoading) {
+    return <div className="h-8 animate-pulse bg-white/5 rounded-lg mt-2" />;
+  }
 
-  if (loading) return <div className="h-8 animate-pulse bg-white/5 rounded-lg mt-2" />;
+  if (repaymentsQuery.error) {
+    return (
+      <p className="text-[10px] text-red-400 mt-2">
+        {friendlyErrorMessage(repaymentsQuery.error, "Couldn't load repayments.")}
+      </p>
+    );
+  }
 
   if (repayments.length === 0)
     return (
@@ -433,35 +414,27 @@ function RepaymentHistory({ loanId }: { loanId: string }) {
 
 // ─── Loan Card ─────────────────────────────────────────────────────────────────
 
-function LoanCard({
-  loan,
-  onRefresh,
-}: {
-  loan: Loan;
-  onRefresh: () => void;
-}) {
-  const supabase = createClient();
+function LoanCard({ loan }: { loan: Loan }) {
   const [showRepayForm, setShowRepayForm] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+
+  const forgiveLoan = useForgiveLoan();
+  const deleteLoan = useDeleteLoan();
+
+  const deleting =
+    deleteLoan.isPending && deleteLoan.variables?.id === loan.id;
 
   const outstanding = loan.original_amount - loan.amount_repaid;
   const pct = Math.min((loan.amount_repaid / loan.original_amount) * 100, 100);
   const { label, color, icon, isOverdue } = getLoanStatus(loan);
   const isDone = loan.status === "repaid" || loan.status === "forgiven";
 
-  async function handleForgive() {
-    await supabase
-      .from("loans")
-      .update({ status: "forgiven", updated_at: new Date().toISOString() })
-      .eq("id", loan.id);
-    onRefresh();
+  function handleForgive() {
+    forgiveLoan.mutate(loan);
   }
 
-  async function handleDelete() {
-    setDeleting(true);
-    await supabase.from("loans").delete().eq("id", loan.id);
-    onRefresh();
+  function handleDelete() {
+    deleteLoan.mutate(loan);
   }
 
   return (
@@ -618,10 +591,7 @@ function LoanCard({
       {showRepayForm && (
         <RepaymentForm
           loan={loan}
-          onSaved={() => {
-            setShowRepayForm(false);
-            onRefresh();
-          }}
+          onSaved={() => setShowRepayForm(false)}
           onCancel={() => setShowRepayForm(false)}
         />
       )}
@@ -635,33 +605,13 @@ function LoanCard({
 // ─── Main LoansTracker Component ──────────────────────────────────────────────
 
 export function LoansTracker() {
-  const supabase = createClient();
-  const [loans, setLoans] = useState<Loan[]>([]);
-  const [loading, setLoading] = useState(true);
+  const loansQuery = useLoans();
   const [showAddForm, setShowAddForm] = useState(false);
   const [showDone, setShowDone] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
-  const fetchLoans = useCallback(async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data } = await supabase
-      .from("loans")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-
-    setLoans((data as Loan[]) || []);
-    setLoading(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    fetchLoans();
-  }, [fetchLoans]);
+  const loans = loansQuery.data ?? [];
+  const loading = loansQuery.isLoading;
 
   const activeLoans = loans.filter((l) => l.status === "active");
   const doneLoans = loans.filter(
@@ -683,6 +633,9 @@ export function LoansTracker() {
               <span className="text-xs font-normal text-white/40 ml-1">
                 {formatCurrency(totalOutstanding)} outstanding
               </span>
+            )}
+            {loansQuery.isFetching && (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-violet-400" />
             )}
           </CardTitle>
           <div className="flex items-center gap-2">
@@ -716,13 +669,16 @@ export function LoansTracker() {
 
       {!collapsed && (
         <CardContent className="pt-0 space-y-3">
+          {loansQuery.error && (
+            <p className="rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 px-3 py-2 text-xs">
+              {friendlyErrorMessage(loansQuery.error, "Couldn't load your loans.")}
+            </p>
+          )}
+
           {/* Add loan form */}
           {showAddForm && (
             <AddLoanForm
-              onSaved={() => {
-                setShowAddForm(false);
-                fetchLoans();
-              }}
+              onSaved={() => setShowAddForm(false)}
               onCancel={() => setShowAddForm(false)}
             />
           )}
@@ -748,7 +704,7 @@ export function LoansTracker() {
           ) : (
             <div className="space-y-2">
               {activeLoans.map((loan) => (
-                <LoanCard key={loan.id} loan={loan} onRefresh={fetchLoans} />
+                <LoanCard key={loan.id} loan={loan} />
               ))}
             </div>
           )}
@@ -772,11 +728,7 @@ export function LoansTracker() {
               {showDone && (
                 <div className="space-y-2 mt-2">
                   {doneLoans.map((loan) => (
-                    <LoanCard
-                      key={loan.id}
-                      loan={loan}
-                      onRefresh={fetchLoans}
-                    />
+                    <LoanCard key={loan.id} loan={loan} />
                   ))}
                 </div>
               )}

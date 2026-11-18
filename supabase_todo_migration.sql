@@ -16,6 +16,8 @@ create table if not exists public.todos (
 alter table public.todos enable row level security;
 
 -- 3. Create Policy
+drop policy if exists "Users can manage own todos" on public.todos;
+
 create policy "Users can manage own todos"
   on public.todos for all
   using (auth.uid() = user_id)

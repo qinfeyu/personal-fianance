@@ -21,6 +21,8 @@ create table if not exists public.loans (
 
 alter table public.loans enable row level security;
 
+drop policy if exists "Users can manage own loans" on public.loans;
+
 create policy "Users can manage own loans"
   on public.loans for all
   using (auth.uid() = user_id)
@@ -41,6 +43,9 @@ create table if not exists public.loan_repayments (
 );
 
 alter table public.loan_repayments enable row level security;
+
+drop policy if exists "Users can manage own loan repayments"
+  on public.loan_repayments;
 
 create policy "Users can manage own loan repayments"
   on public.loan_repayments for all

@@ -1,34 +1,30 @@
 "use client";
 
+import { useState } from "react";
 import { Trash2, ArrowUpRight, ArrowDownLeft, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { type Transaction } from "@/lib/types";
-import { createClient } from "@/lib/supabase/client";
-import { useState } from "react";
+import { useDeleteTransaction } from "@/hooks/useDashboard";
 
 interface TransactionListProps {
   transactions: Transaction[];
+  year: number;
+  month: number;
   loading?: boolean;
-  onRefresh: () => void;
 }
 
 export function TransactionList({
   transactions,
+  year,
+  month,
   loading,
-  onRefresh,
 }: TransactionListProps) {
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const supabase = createClient();
-
-  async function handleDelete(id: string) {
-    setDeletingId(id);
-    await supabase.from("transactions").delete().eq("id", id);
-    setDeletingId(null);
-    onRefresh();
-  }
+  const deleteTransaction = useDeleteTransaction(year, month);
+  const [transactionToDelete, setTransactionToDelete] =
+    useState<Transaction | null>(null);
 
   if (loading) {
     return (
@@ -53,6 +49,7 @@ export function TransactionList({
   }
 
   return (
+    <>
     <Card id="transaction-list-card">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
@@ -79,6 +76,9 @@ export function TransactionList({
             {transactions.map((tx) => {
               const isIncome = tx.type === "income";
               const category = tx.categories;
+              const isDeleting =
+                deleteTransaction.isPending &&
+                deleteTransaction.variables?.id === tx.id;
 
               return (
                 <div
@@ -146,8 +146,8 @@ export function TransactionList({
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 opacity-70 sm:opacity-0 group-hover:opacity-100 transition-opacity text-red-400/60 hover:text-red-400 hover:bg-red-500/10"
-                      onClick={() => handleDelete(tx.id)}
-                      disabled={deletingId === tx.id}
+                      onClick={() => setTransactionToDelete(tx)}
+                      disabled={isDeleting}
                       aria-label="Delete transaction"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -160,5 +160,23 @@ export function TransactionList({
         )}
       </CardContent>
     </Card>
+
+    <ConfirmDialog
+      open={transactionToDelete !== null}
+      onOpenChange={(open) => {
+        if (!open) setTransactionToDelete(null);
+      }}
+      title="Delete transaction?"
+      description={
+        transactionToDelete
+          ? `"${transactionToDelete.description || "This transaction"}" on ${formatDate(transactionToDelete.date)} will be permanently deleted.`
+          : ""
+      }
+      onConfirm={() => {
+        if (transactionToDelete) deleteTransaction.mutate(transactionToDelete);
+        setTransactionToDelete(null);
+      }}
+    />
+    </>
   );
 }

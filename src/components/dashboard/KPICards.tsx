@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
@@ -10,7 +11,7 @@ interface KPICardsProps {
   loading?: boolean;
 }
 
-export function KPICards({ summary, loading }: KPICardsProps) {
+export const KPICards = memo(function KPICards({ summary, loading }: KPICardsProps) {
   const { totalIncome, totalExpenses, remaining } = summary;
   const isPositive = remaining >= 0;
 
@@ -84,7 +85,7 @@ export function KPICards({ summary, loading }: KPICardsProps) {
           >
             {/* Gradient top strip */}
             <div
-              className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${card.gradient.replace("from-", "from-").replace("to-transparent", "to-transparent")}`}
+              className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${card.gradient}`}
             />
             <div
               className={`absolute top-0 left-0 right-0 h-24 bg-gradient-to-b ${card.gradient} opacity-60 pointer-events-none`}
@@ -120,4 +121,4 @@ export function KPICards({ summary, loading }: KPICardsProps) {
       })}
     </div>
   );
-}
+});

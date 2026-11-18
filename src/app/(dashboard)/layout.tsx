@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Wallet, LogOut, ListTodo, Flame, Target, User } from "lucide-react";
+import { Wallet, LogOut, User } from "lucide-react";
 import Link from "next/link";
+import { NavLinks } from "@/components/navigation/NavLinks";
+import { UserIdProvider } from "@/lib/user-context";
 
 export const dynamic = "force-dynamic";
 
@@ -32,14 +34,17 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-[#07070f] text-white flex flex-col md:flex-row relative">
-      {/* Ambient background glows */}
-      <div className="fixed top-0 left-0 w-full h-full pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-violet-800/10 rounded-full blur-[100px]" />
-        <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-purple-900/10 rounded-full blur-[100px]" />
-      </div>
+      {/* Ambient background glows — static gradients, no blur filters to repaint on scroll */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{
+          backgroundImage:
+            "radial-gradient(600px circle at 90% 10%, rgba(109,40,217,0.12), transparent 70%), radial-gradient(500px circle at 10% 90%, rgba(88,28,135,0.14), transparent 70%)",
+        }}
+      />
 
       {/* MOBILE HEADER (Top) */}
-      <header className="md:hidden w-full border-b border-white/[0.06] bg-[#090912]/80 backdrop-blur-xl flex items-center justify-between p-4 sticky top-0 z-20 flex-shrink-0">
+      <header className="md:hidden w-full border-b border-white/[0.06] bg-[#090912]/95 flex items-center justify-between p-4 sticky top-0 z-20 flex-shrink-0">
         <Link href="/dashboard" className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-600 to-purple-800 flex items-center justify-center shadow-lg shadow-violet-900/50 flex-shrink-0">
             <Wallet className="w-4 h-4 text-white" />
@@ -75,39 +80,12 @@ export default async function DashboardLayout({
       </header>
 
       {/* MOBILE BOTTOM NAVIGATION BAR */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#090912]/95 backdrop-blur-md border-t border-white/[0.08] px-4 py-2 flex items-center justify-around">
-        <Link
-          href="/dashboard"
-          className="flex flex-col items-center gap-1 py-1 px-3 text-white/60 hover:text-white transition-colors"
-        >
-          <Wallet className="w-5 h-5 text-violet-400" />
-          <span className="text-[10px] font-medium">Finance</span>
-        </Link>
-        <Link
-          href="/todo"
-          className="flex flex-col items-center gap-1 py-1 px-3 text-white/60 hover:text-white transition-colors"
-        >
-          <ListTodo className="w-5 h-5 text-violet-400" />
-          <span className="text-[10px] font-medium">To-Do</span>
-        </Link>
-        <Link
-          href="/habits"
-          className="flex flex-col items-center gap-1 py-1 px-3 text-white/60 hover:text-white transition-colors"
-        >
-          <Flame className="w-5 h-5 text-violet-400" />
-          <span className="text-[10px] font-medium">Habits</span>
-        </Link>
-        <Link
-          href="/goals"
-          className="flex flex-col items-center gap-1 py-1 px-3 text-white/60 hover:text-white transition-colors"
-        >
-          <Target className="w-5 h-5 text-violet-400" />
-          <span className="text-[10px] font-medium">Goals</span>
-        </Link>
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#090912] border-t border-white/[0.08] px-4 py-2">
+        <NavLinks variant="mobile" />
       </div>
 
       {/* DESKTOP SIDEBAR */}
-      <aside className="hidden md:flex w-64 border-r border-white/[0.06] bg-[#090912]/80 backdrop-blur-xl flex-col justify-between p-6 sticky top-0 h-screen z-20 flex-shrink-0">
+      <aside className="hidden md:flex w-64 border-r border-white/[0.06] bg-[#090912]/95 flex-col justify-between p-6 sticky top-0 h-screen z-20 flex-shrink-0">
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center gap-2.5 mb-8 flex-shrink-0">
@@ -122,36 +100,7 @@ export default async function DashboardLayout({
           </div>
 
           {/* Navigation Links */}
-          <nav className="flex flex-col gap-1 flex-shrink-0">
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all duration-150"
-            >
-              <Wallet className="w-4 h-4 text-violet-400" />
-              <span>Finance</span>
-            </Link>
-            <Link
-              href="/todo"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all duration-150"
-            >
-              <ListTodo className="w-4 h-4 text-violet-400" />
-              <span>To-Do List</span>
-            </Link>
-            <Link
-              href="/habits"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all duration-150"
-            >
-              <Flame className="w-4 h-4 text-violet-400" />
-              <span>Habit Tracker</span>
-            </Link>
-            <Link
-              href="/goals"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all duration-150"
-            >
-              <Target className="w-4 h-4 text-violet-400" />
-              <span>Goals</span>
-            </Link>
-          </nav>
+          <NavLinks variant="desktop" />
         </div>
 
         {/* Footer Area for Desktop */}
@@ -194,8 +143,8 @@ export default async function DashboardLayout({
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 relative z-10 p-4 sm:p-6 md:p-8 max-w-5xl mx-auto w-full overflow-y-auto pb-24 md:pb-8">
-        {children}
+      <main className="flex-1 relative z-10 p-4 sm:p-6 md:p-8 max-w-5xl mx-auto w-full pb-24 md:pb-8">
+        <UserIdProvider userId={user.id}>{children}</UserIdProvider>
       </main>
     </div>
   );

@@ -18,6 +18,9 @@ create table if not exists public.recurring_transactions (
 
 alter table public.recurring_transactions enable row level security;
 
+drop policy if exists "Users can manage own recurring transactions"
+  on public.recurring_transactions;
+
 create policy "Users can manage own recurring transactions"
   on public.recurring_transactions for all
   using (auth.uid() = user_id)

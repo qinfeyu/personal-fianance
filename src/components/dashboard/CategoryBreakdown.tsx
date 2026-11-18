@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
 import { type CategorySpend } from "@/lib/types";
-import { createClient } from "@/lib/supabase/client";
+import { useSetBudget } from "@/hooks/useDashboard";
 import { cn } from "@/lib/utils";
 
 interface CategoryBreakdownProps {
@@ -16,7 +16,6 @@ interface CategoryBreakdownProps {
   year: number;
   month: number;
   loading?: boolean;
-  onRefresh: () => void;
 }
 
 export function CategoryBreakdown({
@@ -24,43 +23,26 @@ export function CategoryBreakdown({
   year,
   month,
   loading,
-  onRefresh,
 }: CategoryBreakdownProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [budgetInput, setBudgetInput] = useState("");
-  const [savingId, setSavingId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(true);
+  const setBudget = useSetBudget(year, month);
 
-  const supabase = createClient();
+  const savingId = setBudget.isPending
+    ? setBudget.variables?.categoryId ?? null
+    : null;
 
-  async function saveBudget(categoryId: string) {
-    setSavingId(categoryId);
+  function saveBudget(categoryId: string) {
     const value = parseFloat(budgetInput);
+
     if (isNaN(value) || value < 0) {
       setEditingId(null);
-      setSavingId(null);
       return;
     }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    await supabase.from("category_budgets").upsert(
-      {
-        user_id: user.id,
-        category_id: categoryId,
-        year,
-        month,
-        budget_limit: value,
-      },
-      { onConflict: "user_id,category_id,year,month" }
-    );
-
-    setSavingId(null);
     setEditingId(null);
-    onRefresh();
+    setBudget.mutate({ categoryId, budgetLimit: value });
   }
 
   function getProgressColor(pct: number): string {

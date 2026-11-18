@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -33,9 +33,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createClient } from "@/lib/supabase/client";
+import {
+  useAddRecurring,
+  useDeleteRecurring,
+  useRecurring,
+  useToggleRecurring,
+  useUpdateRecurring,
+} from "@/hooks/useRecurring";
 import { type Category, type RecurringTransaction } from "@/lib/types";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, friendlyErrorMessage } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 const schema = z.object({
@@ -49,26 +55,34 @@ type FormValues = z.infer<typeof schema>;
 
 interface ManageRecurringModalProps {
   categories: Category[];
-  onRecurringChanged: () => void;
 }
 
 export function ManageRecurringModal({
   categories,
-  onRecurringChanged,
 }: ManageRecurringModalProps) {
   const [open, setOpen] = useState(false);
-  const [recurring, setRecurring] = useState<RecurringTransaction[]>([]);
-  const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  const supabase = createClient();
+  const recurringQuery = useRecurring(open);
+  const addRecurring = useAddRecurring();
+  const updateRecurring = useUpdateRecurring();
+  const toggleRecurring = useToggleRecurring();
+  const deleteRecurring = useDeleteRecurring();
+
+  const recurring = recurringQuery.data ?? [];
+  const loading = recurringQuery.isLoading;
+  const deletingId = deleteRecurring.isPending
+    ? deleteRecurring.variables?.id
+    : null;
+  const togglingId = toggleRecurring.isPending
+    ? toggleRecurring.variables?.id
+    : null;
 
   const {
     register,
     handleSubmit,
+    control,
     setValue,
     reset,
     formState: { errors, isSubmitting },
@@ -77,78 +91,44 @@ export function ManageRecurringModal({
     defaultValues: { day_of_month: 1 },
   });
 
-  async function fetchRecurring() {
-    setLoading(true);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data } = await supabase
-      .from("recurring_transactions")
-      .select("*, categories(*)")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: true });
-
-    setRecurring((data as RecurringTransaction[]) || []);
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    if (open) fetchRecurring();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  const selectedCategoryId = useWatch({ control, name: "category_id" });
 
   async function onSubmit(data: FormValues) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
     const parsedAmount = parseFloat(data.amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) return;
 
     const payload = {
-      user_id: user.id,
       category_id: data.category_id,
       description: data.description || null,
       amount: parsedAmount,
       day_of_month: data.day_of_month,
     };
 
-    if (editingId) {
-      await supabase
-        .from("recurring_transactions")
-        .update({ ...payload, updated_at: new Date().toISOString() })
-        .eq("id", editingId);
-    } else {
-      await supabase.from("recurring_transactions").insert(payload);
+    try {
+      if (editingId) {
+        await updateRecurring.mutateAsync({ id: editingId, ...payload });
+      } else {
+        await addRecurring.mutateAsync(payload);
+      }
+
+      reset({ day_of_month: 1 });
+      setEditingId(null);
+      setShowForm(false);
+    } catch {
+      // Mutations surface their own error toast.
     }
-
-    reset({ day_of_month: 1 });
-    setEditingId(null);
-    setShowForm(false);
-    await fetchRecurring();
-    onRecurringChanged();
   }
 
-  async function handleDelete(id: string) {
-    setDeletingId(id);
-    await supabase.from("recurring_transactions").delete().eq("id", id);
-    setDeletingId(null);
-    await fetchRecurring();
-    onRecurringChanged();
+  function handleDelete(item: RecurringTransaction) {
+    deleteRecurring.mutate(item);
+
+    if (editingId === item.id) {
+      cancelForm();
+    }
   }
 
-  async function handleToggle(item: RecurringTransaction) {
-    setTogglingId(item.id);
-    await supabase
-      .from("recurring_transactions")
-      .update({ active: !item.active, updated_at: new Date().toISOString() })
-      .eq("id", item.id);
-    setTogglingId(null);
-    await fetchRecurring();
-    onRecurringChanged();
+  function handleToggle(item: RecurringTransaction) {
+    toggleRecurring.mutate(item);
   }
 
   function startEdit(item: RecurringTransaction) {
@@ -199,6 +179,12 @@ export function ManageRecurringModal({
         </DialogHeader>
 
         <div className="space-y-4 mt-2">
+          {recurringQuery.error && (
+            <p className="rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 px-3 py-2 text-xs">
+              {friendlyErrorMessage(recurringQuery.error, "Couldn't load your recurring transactions.")}
+            </p>
+          )}
+
           {/* Existing recurring list */}
           {loading ? (
             <div className="space-y-2">
@@ -294,7 +280,7 @@ export function ManageRecurringModal({
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => handleDelete(item.id)}
+                        onClick={() => handleDelete(item)}
                         disabled={deletingId === item.id}
                         className="text-white/30 hover:text-red-400 transition-colors p-1"
                         title="Delete"
@@ -325,7 +311,10 @@ export function ManageRecurringModal({
               {/* Category */}
               <div className="space-y-1.5">
                 <Label>Category</Label>
-                <Select onValueChange={(v) => setValue("category_id", v)}>
+                <Select
+                  value={selectedCategoryId}
+                  onValueChange={(v) => setValue("category_id", v)}
+                >
                   <SelectTrigger id="recurring-category">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>

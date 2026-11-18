@@ -1,13 +1,19 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useState, type ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  useAddGoal,
+  useDeleteGoal,
+  useGoals,
+  useToggleGoal,
+} from "@/hooks/useGoals";
 import { type Goal } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, friendlyErrorMessage } from "@/lib/utils";
 import {
   Plus,
   Trash2,
@@ -27,139 +33,180 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+type Timeframe = Goal["timeframe"];
+
+const currentYear = new Date().getFullYear();
+const currentMonth = new Date().getMonth() + 1;
+const currentSemester = currentMonth <= 6 ? 1 : 2;
+const currentTrimester = currentMonth <= 4 ? 1 : currentMonth <= 8 ? 2 : 3;
+
+function getDefaultPeriod(timeframe: Timeframe): string {
+  if (timeframe === "semester") return `${currentYear}-S${currentSemester}`;
+  if (timeframe === "trimester") return `${currentYear}-T${currentTrimester}`;
+  return `${currentYear}`;
+}
+
+interface GoalSectionProps {
+  title: string;
+  icon: ReactNode;
+  badgeClassName: string;
+  goals: Goal[];
+  emptyText: string;
+  periodPrefix: string;
+  deletingId: string | null;
+  onToggle: (goal: Goal) => void;
+  onDelete: (goal: Goal) => void;
+}
+
+function GoalSection({
+  title,
+  icon,
+  badgeClassName,
+  goals,
+  emptyText,
+  periodPrefix,
+  deletingId,
+  onToggle,
+  onDelete,
+}: GoalSectionProps) {
+  return (
+    <Card className="border-white/[0.08] bg-white/[0.03]">
+      <CardHeader className="pb-3 border-b border-white/[0.06]">
+        <CardTitle className="text-base flex items-center gap-2">
+          {icon}
+          {title}
+          <Badge
+            variant="outline"
+            className={cn("text-[10px]", badgeClassName)}
+          >
+            {goals.length} total
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-4">
+        {goals.length === 0 ? (
+          <p className="text-center py-6 text-white/40 text-xs italic">
+            {emptyText}
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {goals.map((goal) => {
+              const isDeleting = deletingId === goal.id;
+
+              return (
+                <div
+                  key={goal.id}
+                  className={cn(
+                    "group flex items-center justify-between p-3 rounded-xl border transition-all duration-150",
+                    goal.completed
+                      ? "border-white/[0.04] bg-white/[0.01] opacity-60"
+                      : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.05]"
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => onToggle(goal)}
+                    className="flex items-center gap-3 flex-1 cursor-pointer min-w-0 text-left"
+                  >
+                    {goal.completed ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                    ) : (
+                      <Circle className="w-4 h-4 text-white/30 hover:text-violet-400 transition-colors flex-shrink-0" />
+                    )}
+                    <div className="flex flex-col min-w-0">
+                      <span
+                        className={cn(
+                          "text-sm font-medium text-white/90 truncate",
+                          goal.completed && "line-through text-white/40"
+                        )}
+                      >
+                        {goal.title}
+                      </span>
+                      <span className="text-[10px] text-white/30 mt-0.5">
+                        {periodPrefix}: {goal.period}
+                      </span>
+                    </div>
+                  </button>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-white/20 hover:text-red-400 hover:bg-red-500/10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2"
+                    onClick={() => onDelete(goal)}
+                    disabled={isDeleting}
+                    aria-label="Delete goal"
+                  >
+                    {isDeleting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function GoalsPage() {
-  const supabase = createClient();
-  const [goals, setGoals] = useState<Goal[]>([]);
   const [newTitle, setNewTitle] = useState("");
-  const [timeframe, setTimeframe] = useState<"semester" | "trimester" | "year">("semester");
-  const [loading, setLoading] = useState(true);
-  const [adding, setAdding] = useState(false);
-  const [actionId, setActionId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [timeframe, setTimeframe] = useState<Timeframe>("semester");
+  const [period, setPeriod] = useState(getDefaultPeriod("semester"));
+  const [goalToDelete, setGoalToDelete] = useState<Goal | null>(null);
 
-  // Compute current year, semester, and trimester values for forms
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1; // 1-12
-  const currentSemester = currentMonth <= 6 ? 1 : 2;
-  const currentTrimester = currentMonth <= 4 ? 1 : currentMonth <= 8 ? 2 : 3;
+  const goalsQuery = useGoals();
+  const addGoal = useAddGoal();
+  const toggleGoal = useToggleGoal();
+  const deleteGoal = useDeleteGoal();
 
-  const defaultPeriod = timeframe === "semester"
-    ? `${currentYear}-S${currentSemester}`
-    : timeframe === "trimester"
-    ? `${currentYear}-T${currentTrimester}`
-    : `${currentYear}`;
+  const goals = goalsQuery.data ?? [];
+  const adding = addGoal.isPending;
+  const deletingId = deleteGoal.isPending
+    ? deleteGoal.variables?.id ?? null
+    : null;
 
-  const [period, setPeriod] = useState(defaultPeriod);
+  const semesterGoals = goals.filter((goal) => goal.timeframe === "semester");
+  const trimesterGoals = goals.filter(
+    (goal) => goal.timeframe === "trimester"
+  );
+  const yearGoals = goals.filter((goal) => goal.timeframe === "year");
 
-  // Reset period when timeframe changes
-  useEffect(() => {
-    setPeriod(
-      timeframe === "semester"
-        ? `${currentYear}-S${currentSemester}`
-        : timeframe === "trimester"
-        ? `${currentYear}-T${currentTrimester}`
-        : `${currentYear}`
-    );
-  }, [timeframe, currentYear, currentSemester, currentTrimester]);
+  const totalCompleted = goals.filter((goal) => goal.completed).length;
+  const completionRate =
+    goals.length > 0 ? Math.round((totalCompleted / goals.length) * 100) : 0;
 
-  const fetchGoals = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data, error: fetchError } = await supabase
-      .from("goals")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (fetchError) {
-      setError(fetchError.message);
-    } else {
-      setGoals((data as Goal[]) || []);
-    }
-    setLoading(false);
-  }, [supabase]);
-
-  useEffect(() => {
-    fetchGoals();
-  }, [fetchGoals]);
+  function handleTimeframeChange(value: Timeframe) {
+    setTimeframe(value);
+    setPeriod(getDefaultPeriod(value));
+  }
 
   async function handleAddGoal(e: React.FormEvent) {
     e.preventDefault();
-    if (!newTitle.trim()) return;
+    const title = newTitle.trim();
 
-    setAdding(true);
-    setError(null);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setError("User not authenticated.");
-      setAdding(false);
-      return;
-    }
+    if (!title) return;
 
-    const { error: insertError } = await supabase.from("goals").insert({
-      user_id: user.id,
-      title: newTitle.trim(),
-      timeframe,
-      period,
-      completed: false,
-    });
-
-    if (insertError) {
-      setError(insertError.message);
-    } else {
+    try {
+      await addGoal.mutateAsync({ title, timeframe, period });
       setNewTitle("");
-      await fetchGoals();
+    } catch {
+      // The mutation surfaces its own error toast.
     }
-    setAdding(false);
   }
 
-  async function handleToggleGoal(goal: Goal) {
-    setActionId(goal.id);
-    setError(null);
-    const { error: updateError } = await supabase
-      .from("goals")
-      .update({ completed: !goal.completed })
-      .eq("id", goal.id);
+  function handleDeleteGoal() {
+    if (!goalToDelete) return;
 
-    if (updateError) {
-      setError(updateError.message);
-    } else {
-      await fetchGoals();
-    }
-    setActionId(null);
+    deleteGoal.mutate(goalToDelete);
+    setGoalToDelete(null);
   }
-
-  async function handleDeleteGoal(id: string) {
-    setActionId(id);
-    setError(null);
-    const { error: deleteError } = await supabase.from("goals").delete().eq("id", id);
-    if (deleteError) {
-      setError(deleteError.message);
-    } else {
-      await fetchGoals();
-    }
-    setActionId(null);
-  }
-
-  // Filter goals
-  const semesterGoals = goals.filter((g) => g.timeframe === "semester");
-  const trimesterGoals = goals.filter((g) => g.timeframe === "trimester");
-  const yearGoals = goals.filter((g) => g.timeframe === "year");
-
-  // Statistics
-  const totalCompleted = goals.filter((g) => g.completed).length;
-  const completionRate = goals.length > 0 ? Math.round((totalCompleted / goals.length) * 100) : 0;
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
@@ -174,25 +221,27 @@ export default function GoalsPage() {
         <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1 text-xs font-semibold text-white">
           <Sparkles className="w-3.5 h-3.5 text-violet-400" />
           {completionRate}% success rate
+          {goalsQuery.isFetching && (
+            <Loader2 className="w-3 h-3 animate-spin text-violet-400" />
+          )}
         </div>
       </div>
 
-      {/* Error Alert */}
-      {error && (
+      {goalsQuery.error && (
         <div className="rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 text-sm">
-          {error}
+          {friendlyErrorMessage(goalsQuery.error, "Couldn't load your goals.")}
         </div>
       )}
 
-      {/* Add New Goal Card */}
       <Card className="border-white/[0.08] bg-white/[0.03]">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">Define New Goal</CardTitle>
+          <CardTitle className="text-sm font-semibold">
+            Define New Goal
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAddGoal} className="space-y-4">
             <div className="flex flex-col md:flex-row gap-3">
-              {/* Title input */}
               <Input
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
@@ -201,11 +250,12 @@ export default function GoalsPage() {
                 className="flex-1"
               />
 
-              {/* Timeframe Select */}
               <div className="flex gap-2">
                 <Select
                   value={timeframe}
-                  onValueChange={(val: "semester" | "trimester" | "year") => setTimeframe(val)}
+                  onValueChange={(value: Timeframe) =>
+                    handleTimeframeChange(value)
+                  }
                 >
                   <SelectTrigger className="w-36">
                     <SelectValue placeholder="Timeframe" />
@@ -217,8 +267,7 @@ export default function GoalsPage() {
                   </SelectContent>
                 </Select>
 
-                {/* Period Select */}
-                <Select value={period} onValueChange={(val) => setPeriod(val)}>
+                <Select value={period} onValueChange={(value) => setPeriod(value)}>
                   <SelectTrigger className="w-32">
                     <SelectValue placeholder="Period" />
                   </SelectTrigger>
@@ -266,8 +315,16 @@ export default function GoalsPage() {
             </div>
 
             <div className="flex justify-end pt-1">
-              <Button type="submit" disabled={adding || !newTitle.trim()} className="gap-1.5 shadow-lg shadow-violet-900/30">
-                {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              <Button
+                type="submit"
+                disabled={adding || !newTitle.trim()}
+                className="gap-1.5 shadow-lg shadow-violet-900/30"
+              >
+                {adding ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )}
                 Add Goal
               </Button>
             </div>
@@ -275,8 +332,7 @@ export default function GoalsPage() {
         </CardContent>
       </Card>
 
-      {/* Main Lists */}
-      {loading ? (
+      {goalsQuery.isLoading ? (
         <div className="space-y-6">
           <Card className="animate-pulse h-40 bg-white/5 rounded-xl border-white/[0.08]" />
           <Card className="animate-pulse h-40 bg-white/5 rounded-xl border-white/[0.08]" />
@@ -284,229 +340,57 @@ export default function GoalsPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Semester Goals */}
-          <Card className="border-white/[0.08] bg-white/[0.03]">
-            <CardHeader className="pb-3 border-b border-white/[0.06]">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-violet-400" />
-                Semester Goals
-                <Badge variant="outline" className="border-violet-500/30 text-violet-300 text-[10px]">
-                  {semesterGoals.length} total
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              {semesterGoals.length === 0 ? (
-                <p className="text-center py-6 text-white/40 text-xs italic">
-                  No semester goals added yet
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {semesterGoals.map((goal) => {
-                    const isActioned = actionId === goal.id;
-                    return (
-                      <div
-                        key={goal.id}
-                        className={cn(
-                          "group flex items-center justify-between p-3 rounded-xl border transition-all duration-150",
-                          goal.completed
-                            ? "border-white/[0.04] bg-white/[0.01] opacity-60"
-                            : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.05]"
-                        )}
-                      >
-                        <div
-                          onClick={() => !isActioned && handleToggleGoal(goal)}
-                          className="flex items-center gap-3 flex-1 cursor-pointer min-w-0"
-                        >
-                          {isActioned ? (
-                            <Loader2 className="w-4 h-4 animate-spin text-white/30" />
-                          ) : goal.completed ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                          ) : (
-                            <Circle className="w-4 h-4 text-white/30 hover:text-violet-400 transition-colors flex-shrink-0" />
-                          )}
-                          <div className="flex flex-col min-w-0">
-                            <span
-                              className={cn(
-                                "text-sm font-medium text-white/90 truncate",
-                                goal.completed && "line-through text-white/40"
-                              )}
-                            >
-                              {goal.title}
-                            </span>
-                            <span className="text-[10px] text-white/30 mt-0.5">
-                              Period: {goal.period}
-                            </span>
-                          </div>
-                        </div>
+          <GoalSection
+            title="Semester Goals"
+            icon={<Calendar className="w-4 h-4 text-violet-400" />}
+            badgeClassName="border-violet-500/30 text-violet-300"
+            goals={semesterGoals}
+            emptyText="No semester goals added yet"
+            periodPrefix="Period"
+            deletingId={deletingId}
+            onToggle={(goal) => toggleGoal.mutate(goal)}
+            onDelete={setGoalToDelete}
+          />
 
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-white/20 hover:text-red-400 hover:bg-red-500/10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2"
-                          onClick={() => handleDeleteGoal(goal.id)}
-                          disabled={isActioned}
-                          aria-label="Delete goal"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <GoalSection
+            title="Trimester Goals"
+            icon={<Layers className="w-4 h-4 text-emerald-400" />}
+            badgeClassName="border-emerald-500/30 text-emerald-300"
+            goals={trimesterGoals}
+            emptyText="No trimester goals added yet"
+            periodPrefix="Period"
+            deletingId={deletingId}
+            onToggle={(goal) => toggleGoal.mutate(goal)}
+            onDelete={setGoalToDelete}
+          />
 
-          {/* Trimester Goals */}
-          <Card className="border-white/[0.08] bg-white/[0.03]">
-            <CardHeader className="pb-3 border-b border-white/[0.06]">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Layers className="w-4 h-4 text-emerald-400" />
-                Trimester Goals
-                <Badge variant="outline" className="border-emerald-500/30 text-emerald-300 text-[10px]">
-                  {trimesterGoals.length} total
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              {trimesterGoals.length === 0 ? (
-                <p className="text-center py-6 text-white/40 text-xs italic">
-                  No trimester goals added yet
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {trimesterGoals.map((goal) => {
-                    const isActioned = actionId === goal.id;
-                    return (
-                      <div
-                        key={goal.id}
-                        className={cn(
-                          "group flex items-center justify-between p-3 rounded-xl border transition-all duration-150",
-                          goal.completed
-                            ? "border-white/[0.04] bg-white/[0.01] opacity-60"
-                            : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.05]"
-                        )}
-                      >
-                        <div
-                          onClick={() => !isActioned && handleToggleGoal(goal)}
-                          className="flex items-center gap-3 flex-1 cursor-pointer min-w-0"
-                        >
-                          {isActioned ? (
-                            <Loader2 className="w-4 h-4 animate-spin text-white/30" />
-                          ) : goal.completed ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                          ) : (
-                            <Circle className="w-4 h-4 text-white/30 hover:text-violet-400 transition-colors flex-shrink-0" />
-                          )}
-                          <div className="flex flex-col min-w-0">
-                            <span
-                              className={cn(
-                                "text-sm font-medium text-white/90 truncate",
-                                goal.completed && "line-through text-white/40"
-                              )}
-                            >
-                              {goal.title}
-                            </span>
-                            <span className="text-[10px] text-white/30 mt-0.5">
-                              Period: {goal.period}
-                            </span>
-                          </div>
-                        </div>
-
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-white/20 hover:text-red-400 hover:bg-red-500/10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2"
-                          onClick={() => handleDeleteGoal(goal.id)}
-                          disabled={isActioned}
-                          aria-label="Delete goal"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Annual Goals */}
-          <Card className="border-white/[0.08] bg-white/[0.03]">
-            <CardHeader className="pb-3 border-b border-white/[0.06]">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Target className="w-4 h-4 text-orange-400" />
-                Annual Goals
-                <Badge variant="outline" className="border-orange-500/30 text-orange-300 text-[10px]">
-                  {yearGoals.length} total
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              {yearGoals.length === 0 ? (
-                <p className="text-center py-6 text-white/40 text-xs italic">
-                  No annual goals added yet
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {yearGoals.map((goal) => {
-                    const isActioned = actionId === goal.id;
-                    return (
-                      <div
-                        key={goal.id}
-                        className={cn(
-                          "group flex items-center justify-between p-3 rounded-xl border transition-all duration-150",
-                          goal.completed
-                            ? "border-white/[0.04] bg-white/[0.01] opacity-60"
-                            : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.05]"
-                        )}
-                      >
-                        <div
-                          onClick={() => !isActioned && handleToggleGoal(goal)}
-                          className="flex items-center gap-3 flex-1 cursor-pointer min-w-0"
-                        >
-                          {isActioned ? (
-                            <Loader2 className="w-4 h-4 animate-spin text-white/30" />
-                          ) : goal.completed ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                          ) : (
-                            <Circle className="w-4 h-4 text-white/30 hover:text-violet-400 transition-colors flex-shrink-0" />
-                          )}
-                          <div className="flex flex-col min-w-0">
-                            <span
-                              className={cn(
-                                "text-sm font-medium text-white/90 truncate",
-                                goal.completed && "line-through text-white/40"
-                              )}
-                            >
-                              {goal.title}
-                            </span>
-                            <span className="text-[10px] text-white/30 mt-0.5">
-                              Year: {goal.period}
-                            </span>
-                          </div>
-                        </div>
-
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-white/20 hover:text-red-400 hover:bg-red-500/10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2"
-                          onClick={() => handleDeleteGoal(goal.id)}
-                          disabled={isActioned}
-                          aria-label="Delete goal"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <GoalSection
+            title="Annual Goals"
+            icon={<Target className="w-4 h-4 text-orange-400" />}
+            badgeClassName="border-orange-500/30 text-orange-300"
+            goals={yearGoals}
+            emptyText="No annual goals added yet"
+            periodPrefix="Year"
+            deletingId={deletingId}
+            onToggle={(goal) => toggleGoal.mutate(goal)}
+            onDelete={setGoalToDelete}
+          />
         </div>
       )}
+
+      <ConfirmDialog
+        open={goalToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setGoalToDelete(null);
+        }}
+        title="Delete goal?"
+        description={
+          goalToDelete
+            ? `"${goalToDelete.title}" will be permanently deleted.`
+            : ""
+        }
+        onConfirm={handleDeleteGoal}
+      />
     </div>
   );
 }
