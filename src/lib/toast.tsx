@@ -58,7 +58,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             }}
             className={cn(
               "grid grid-cols-[auto_1fr_auto] items-start gap-3 rounded-xl border p-4 shadow-2xl",
-              "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+              "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
               item.variant === "error"
                 ? "border-red-500/30 bg-[#1a0f14] text-red-200"
                 : item.variant === "success"

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
+import { AddTransactionModal } from "@/components/dashboard/AddTransactionModal";
+import { ManageRecurringModal } from "@/components/dashboard/ManageRecurringModal";
 import { KPICards } from "@/components/dashboard/KPICards";
 import { CategoryBreakdown } from "@/components/dashboard/CategoryBreakdown";
 import { TransactionList } from "@/components/dashboard/TransactionList";
@@ -10,16 +11,6 @@ import { MonthSwitcher } from "@/components/dashboard/MonthSwitcher";
 import { LazyLoansTracker } from "@/components/dashboard/LazyLoansTracker";
 import { useDashboard } from "@/hooks/useDashboard";
 import { friendlyErrorMessage, getCurrentMonthYear } from "@/lib/utils";
-
-const AddTransactionModal = dynamic(
-  () => import("@/components/dashboard/AddTransactionModal").then((mod) => mod.AddTransactionModal),
-  { ssr: false }
-);
-
-const ManageRecurringModal = dynamic(
-  () => import("@/components/dashboard/ManageRecurringModal").then((mod) => mod.ManageRecurringModal),
-  { ssr: false }
-);
 
 const EMPTY_SUMMARY = {
   totalIncome: 0,

@@ -41,6 +41,12 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Radix moves focus when a dialog opens/closes. With smooth scrolling the page
+   animates that focus jump right as the modal appears, which looks like a glitch. */
+html:has([role="dialog"]) {
+  scroll-behavior: auto;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -125,7 +131,9 @@ input[type="number"] {
   to { height: 0; }
 }
 
-/* Dialog animations */
+/* Dialog animations — animate the standalone `scale` property instead of
+   `transform`, so the `translate: -50% -50%` centering on dialogs and Radix's
+   popper positioning are never overwritten mid-animation. */
 @keyframes fade-in-0 {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -135,42 +143,25 @@ input[type="number"] {
   to { opacity: 0; }
 }
 @keyframes zoom-in-95 {
-  from { transform: translate(-50%, -50%) scale(0.95); }
-  to { transform: translate(-50%, -50%) scale(1); }
+  from { opacity: 0; scale: 0.95; }
+  to { opacity: 1; scale: 1; }
 }
 @keyframes zoom-out-95 {
-  from { transform: translate(-50%, -50%) scale(1); }
-  to { transform: translate(-50%, -50%) scale(0.95); }
-}
-@keyframes slide-in-from-top {
-  from { transform: translate(-50%, -52%); }
-  to { transform: translate(-50%, -50%); }
-}
-@keyframes slide-out-to-top {
-  from { transform: translate(-50%, -50%); }
-  to { transform: translate(-50%, -52%); }
+  from { opacity: 1; scale: 1; }
+  to { opacity: 0; scale: 0.95; }
 }
 
-[data-state="open"].animate-in {
-  animation-fill-mode: forwards;
-}
-[data-state="closed"].animate-out {
-  animation-fill-mode: forwards;
-}
-
-.data-\[state\=open\]\:animate-in[data-state="open"],
 .data-\[state\=open\]\:fade-in-0[data-state="open"] {
-  animation: fade-in-0 0.2s ease-out;
+  animation: fade-in-0 0.18s ease-out both;
 }
-.data-\[state\=closed\]\:animate-out[data-state="closed"],
 .data-\[state\=closed\]\:fade-out-0[data-state="closed"] {
-  animation: fade-out-0 0.15s ease-in;
+  animation: fade-out-0 0.14s ease-in both;
 }
 .data-\[state\=open\]\:zoom-in-95[data-state="open"] {
-  animation: zoom-in-95 0.2s ease-out;
+  animation: zoom-in-95 0.18s ease-out both;
 }
 .data-\[state\=closed\]\:zoom-out-95[data-state="closed"] {
-  animation: zoom-out-95 0.15s ease-in;
+  animation: zoom-out-95 0.14s ease-in both;
 }
 
 @media (prefers-reduced-motion: reduce) {
