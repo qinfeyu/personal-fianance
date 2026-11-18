@@ -7,6 +7,7 @@ import { queryKeys } from "@/lib/query-keys";
 import { clearMonthReady } from "@/lib/seed";
 import { useToast } from "@/lib/toast";
 import type { RecurringTransaction } from "@/lib/types";
+import { friendlyMutationError } from "@/lib/utils";
 
 export interface RecurringInput {
   category_id: string;
@@ -96,7 +97,7 @@ export function useAddRecurring() {
       }
       toast({
         title: "Could not add recurring transaction",
-        description: error.message,
+        description: friendlyMutationError(error),
         variant: "error",
       });
     },
@@ -157,7 +158,7 @@ export function useUpdateRecurring() {
       }
       toast({
         title: "Could not update recurring transaction",
-        description: error.message,
+        description: friendlyMutationError(error),
         variant: "error",
       });
     },
@@ -207,7 +208,7 @@ export function useToggleRecurring() {
       }
       toast({
         title: "Could not update recurring transaction",
-        description: error.message,
+        description: friendlyMutationError(error),
         variant: "error",
       });
     },
@@ -255,7 +256,7 @@ export function useDeleteRecurring() {
       }
       toast({
         title: "Could not delete recurring transaction",
-        description: error.message,
+        description: friendlyMutationError(error),
         variant: "error",
       });
     },

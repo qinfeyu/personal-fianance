@@ -15,7 +15,7 @@ export const DEFAULT_CATEGORIES = [
 
 let rpcSeedingUnavailable = false;
 
-function isMissingFunction(error: PostgrestError): boolean {
+export function isMissingFunction(error: PostgrestError): boolean {
   return (
     error.code === "PGRST202" ||
     error.message.includes("Could not find the function") ||

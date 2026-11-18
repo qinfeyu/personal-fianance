@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useUserId } from "@/lib/user-context";
 import { queryKeys } from "@/lib/query-keys";
 import { useToast } from "@/lib/toast";
+import { friendlyMutationError } from "@/lib/utils";
 import type { Todo } from "@/lib/types";
 
 interface OptimisticContext {
@@ -77,7 +78,7 @@ export function useAddTodo() {
       }
       toast({
         title: "Could not add task",
-        description: error.message,
+        description: friendlyMutationError(error),
         variant: "error",
       });
     },
@@ -132,7 +133,7 @@ export function useToggleTodo() {
       }
       toast({
         title: "Could not update task",
-        description: error.message,
+        description: friendlyMutationError(error),
         variant: "error",
       });
     },
@@ -175,7 +176,7 @@ export function useDeleteTodo() {
       }
       toast({
         title: "Could not delete task",
-        description: error.message,
+        description: friendlyMutationError(error),
         variant: "error",
       });
     },

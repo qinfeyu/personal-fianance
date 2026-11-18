@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useUserId } from "@/lib/user-context";
 import { queryKeys } from "@/lib/query-keys";
 import { useToast } from "@/lib/toast";
+import { friendlyMutationError } from "@/lib/utils";
 import type { Goal } from "@/lib/types";
 
 export interface NewGoalInput {
@@ -91,7 +92,7 @@ export function useAddGoal() {
       }
       toast({
         title: "Could not add goal",
-        description: error.message,
+        description: friendlyMutationError(error),
         variant: "error",
       });
     },
@@ -146,7 +147,7 @@ export function useToggleGoal() {
       }
       toast({
         title: "Could not update goal",
-        description: error.message,
+        description: friendlyMutationError(error),
         variant: "error",
       });
     },
@@ -189,7 +190,7 @@ export function useDeleteGoal() {
       }
       toast({
         title: "Could not delete goal",
-        description: error.message,
+        description: friendlyMutationError(error),
         variant: "error",
       });
     },

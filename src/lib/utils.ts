@@ -22,12 +22,16 @@ export function formatCurrency(amount: number): string {
   return currencyFormatter.format(amount);
 }
 
-/** Turns low-level Supabase/network errors into messages safe to show in the UI. */
-export function friendlyErrorMessage(error: unknown, context: string): string {
-  const message = error instanceof Error ? error.message : String(error);
+function rawErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/** Recognizes common Supabase/network failures and returns a safe explanation. */
+function recognizedError(error: unknown): string | null {
+  const message = rawErrorMessage(error);
 
   if (/failed to fetch|network|fetch failed|load failed/i.test(message)) {
-    return `${context} Check your connection and try again.`;
+    return "Check your connection and try again.";
   }
   if (/jwt|session|refresh token|401/i.test(message)) {
     return "Your session expired. Please sign in again.";
@@ -35,7 +39,31 @@ export function friendlyErrorMessage(error: unknown, context: string): string {
   if (/permission|row-level|rls|403/i.test(message)) {
     return "You don't have permission to do that.";
   }
-  return `${context} Please try again.`;
+  return null;
+}
+
+/** Turns low-level Supabase/network errors into messages safe to show in the UI. */
+export function friendlyErrorMessage(error: unknown, context: string): string {
+  const recognized = recognizedError(error);
+
+  if (recognized === "Check your connection and try again.") {
+    return `${context} ${recognized}`;
+  }
+  return recognized ?? `${context} Please try again.`;
+}
+
+/** Sanitizes mutation errors for toasts, keeping intentional app messages. */
+export function friendlyMutationError(error: unknown): string {
+  const recognized = recognizedError(error);
+  if (recognized) return recognized;
+
+  const message = rawErrorMessage(error);
+  const isDbInternals =
+    /constraint|policy|relation|column|syntax|duplicate key|violat|pg_|invalid input|malformed/i.test(
+      message
+    );
+
+  return isDbInternals ? "Something went wrong. Please try again." : message;
 }
 
 export function parseLocalDate(dateStr: string): Date {

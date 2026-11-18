@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Wallet, Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { friendlyMutationError } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,7 +38,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         password,
       });
       if (error) {
-        setError(error.message);
+        setError(friendlyMutationError(error));
         setLoading(false);
       } else {
         router.push("/dashboard");
@@ -53,7 +54,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         },
       });
       if (error) {
-        setError(error.message);
+        setError(friendlyMutationError(error));
         setLoading(false);
       } else {
         router.push("/dashboard");
@@ -76,7 +77,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       },
     });
     if (error) {
-      setError(error.message);
+      setError(friendlyMutationError(error));
     } else {
       setMagicLinkSent(true);
     }

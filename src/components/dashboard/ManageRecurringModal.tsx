@@ -24,6 +24,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -63,6 +64,8 @@ export function ManageRecurringModal({
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [itemToDelete, setItemToDelete] =
+    useState<RecurringTransaction | null>(null);
 
   const recurringQuery = useRecurring(open);
   const addRecurring = useAddRecurring();
@@ -120,11 +123,7 @@ export function ManageRecurringModal({
   }
 
   function handleDelete(item: RecurringTransaction) {
-    deleteRecurring.mutate(item);
-
-    if (editingId === item.id) {
-      cancelForm();
-    }
+    setItemToDelete(item);
   }
 
   function handleToggle(item: RecurringTransaction) {
@@ -149,6 +148,7 @@ export function ManageRecurringModal({
   const activeCount = recurring.filter((r) => r.active).length;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
@@ -265,6 +265,8 @@ export function ManageRecurringModal({
                         disabled={togglingId === item.id}
                         className="text-white/30 hover:text-violet-400 transition-colors p-1"
                         title={item.active ? "Pause" : "Resume"}
+                        aria-label={`${item.active ? "Pause" : "Resume"} ${item.description || "recurring transaction"}`}
+                        type="button"
                       >
                         {item.active ? (
                           <ToggleRight className="w-4 h-4 text-violet-400" />
@@ -276,6 +278,8 @@ export function ManageRecurringModal({
                         onClick={() => startEdit(item)}
                         className="text-white/30 hover:text-white transition-colors p-1"
                         title="Edit"
+                        aria-label={`Edit ${item.description || "recurring transaction"}`}
+                        type="button"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
@@ -284,6 +288,8 @@ export function ManageRecurringModal({
                         disabled={deletingId === item.id}
                         className="text-white/30 hover:text-red-400 transition-colors p-1"
                         title="Delete"
+                        aria-label={`Delete ${item.description || "recurring transaction"}`}
+                        type="button"
                       >
                         {deletingId === item.id ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -410,5 +416,26 @@ export function ManageRecurringModal({
         </div>
       </DialogContent>
     </Dialog>
+
+    <ConfirmDialog
+      open={itemToDelete !== null}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) setItemToDelete(null);
+      }}
+      title="Delete recurring transaction?"
+      description={
+        itemToDelete
+          ? `"${itemToDelete.description || "This template"}" will stop being added automatically. Past transactions stay in your history.`
+          : ""
+      }
+      onConfirm={() => {
+        if (itemToDelete) {
+          deleteRecurring.mutate(itemToDelete);
+          if (editingId === itemToDelete.id) cancelForm();
+        }
+        setItemToDelete(null);
+      }}
+    />
+    </>
   );
 }

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Wallet, LogOut, User } from "lucide-react";
 import Link from "next/link";
 import { NavLinks } from "@/components/navigation/NavLinks";
+import { signOut } from "./actions";
 import { UserIdProvider } from "@/lib/user-context";
 
 export const dynamic = "force-dynamic";
@@ -55,20 +56,7 @@ export default async function DashboardLayout({
         </Link>
 
         {/* Mobile logout */}
-        <form
-          action={async () => {
-            "use server";
-            const { createClient: createServerClient } = await import(
-              "@/lib/supabase/server"
-            );
-            const supabase = await createServerClient();
-            await supabase.auth.signOut();
-            const { redirect: serverRedirect } = await import(
-              "next/navigation"
-            );
-            serverRedirect("/login");
-          }}
-        >
+        <form action={signOut}>
           <button
             type="submit"
             className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
@@ -117,20 +105,7 @@ export default async function DashboardLayout({
             </div>
           </div>
 
-          <form
-            action={async () => {
-              "use server";
-              const { createClient: createServerClient } = await import(
-                "@/lib/supabase/server"
-              );
-              const supabase = await createServerClient();
-              await supabase.auth.signOut();
-              const { redirect: serverRedirect } = await import(
-                "next/navigation"
-              );
-              serverRedirect("/login");
-            }}
-          >
+          <form action={signOut}>
             <button
               type="submit"
               className="w-full flex items-center justify-center gap-2 text-xs text-white/40 hover:text-white/80 transition-colors px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 font-medium"

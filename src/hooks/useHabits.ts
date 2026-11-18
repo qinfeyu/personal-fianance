@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useUserId } from "@/lib/user-context";
 import { queryKeys } from "@/lib/query-keys";
 import { useToast } from "@/lib/toast";
+import { friendlyMutationError } from "@/lib/utils";
 import type { Habit, HabitLog } from "@/lib/types";
 
 export interface HabitsWeek {
@@ -107,7 +108,7 @@ export function useAddHabit(start: string, end: string) {
       }
       toast({
         title: "Could not add habit",
-        description: error.message,
+        description: friendlyMutationError(error),
         variant: "error",
       });
     },
@@ -166,7 +167,7 @@ export function useDeleteHabit(start: string, end: string) {
       }
       toast({
         title: "Could not delete habit",
-        description: error.message,
+        description: friendlyMutationError(error),
         variant: "error",
       });
     },
@@ -251,7 +252,7 @@ export function useToggleHabit(start: string, end: string) {
         }
         toast({
           title: "Could not update habit",
-          description: error.message,
+          description: friendlyMutationError(error),
           variant: "error",
         });
       },

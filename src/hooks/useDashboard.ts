@@ -19,6 +19,7 @@ import {
 } from "@/lib/dashboard";
 import { ensureMonthReady } from "@/lib/seed";
 import { useToast } from "@/lib/toast";
+import { friendlyMutationError } from "@/lib/utils";
 import type {
   Category,
   CategoryBudget,
@@ -185,7 +186,7 @@ export function useAddTransaction(year: number, month: number) {
       }
       toast({
         title: "Could not add transaction",
-        description: error.message,
+        description: friendlyMutationError(error),
         variant: "error",
       });
     },
@@ -273,7 +274,7 @@ export function useDeleteTransaction(year: number, month: number) {
       }
       toast({
         title: "Could not delete transaction",
-        description: error.message,
+        description: friendlyMutationError(error),
         variant: "error",
       });
     },
@@ -329,7 +330,7 @@ export function useSetBudget(year: number, month: number) {
       }
       toast({
         title: "Could not save budget",
-        description: error.message,
+        description: friendlyMutationError(error),
         variant: "error",
       });
     },

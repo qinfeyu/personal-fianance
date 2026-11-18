@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { type Todo } from "@/lib/types";
 import {
   useAddTodo,
   useDeleteTodo,
@@ -16,6 +18,7 @@ import { cn, friendlyErrorMessage } from "@/lib/utils";
 
 export default function TodoPage() {
   const [newTitle, setNewTitle] = useState("");
+  const [todoToDelete, setTodoToDelete] = useState<Todo | null>(null);
 
   const todosQuery = useTodos();
   const addTodo = useAddTodo();
@@ -45,7 +48,7 @@ export default function TodoPage() {
   }
 
   function handleDeleteTodo(todo: (typeof todos)[number]) {
-    deleteTodo.mutate(todo);
+    setTodoToDelete(todo);
   }
 
   const completedCount = todos.filter((t) => t.completed).length;
@@ -190,6 +193,23 @@ export default function TodoPage() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={todoToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setTodoToDelete(null);
+        }}
+        title="Delete task?"
+        description={
+          todoToDelete
+            ? `"${todoToDelete.title}" will be permanently deleted.`
+            : ""
+        }
+        onConfirm={() => {
+          if (todoToDelete) deleteTodo.mutate(todoToDelete);
+          setTodoToDelete(null);
+        }}
+      />
     </div>
   );
 }

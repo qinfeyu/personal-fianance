@@ -1,21 +1,13 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { PostgrestError } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { useUserId } from "@/lib/user-context";
 import { queryKeys } from "@/lib/query-keys";
+import { isMissingFunction } from "@/lib/seed";
 import { useToast } from "@/lib/toast";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, friendlyMutationError } from "@/lib/utils";
 import type { Loan, LoanRepayment } from "@/lib/types";
-
-function isMissingFunction(error: PostgrestError): boolean {
-  return (
-    error.code === "PGRST202" ||
-    error.message.includes("Could not find the function") ||
-    error.message.includes("does not exist")
-  );
-}
 
 interface OptimisticContext {
   previous?: Loan[];
@@ -111,7 +103,7 @@ export function useAddLoan() {
       }
       toast({
         title: "Could not add loan",
-        description: error.message,
+        description: friendlyMutationError(error),
         variant: "error",
       });
     },
@@ -226,7 +218,7 @@ export function useRecordRepayment() {
       }
       toast({
         title: "Could not record repayment",
-        description: error.message,
+        description: friendlyMutationError(error),
         variant: "error",
       });
     },
@@ -288,7 +280,7 @@ export function useForgiveLoan() {
       }
       toast({
         title: "Could not update loan",
-        description: error.message,
+        description: friendlyMutationError(error),
         variant: "error",
       });
     },
@@ -331,7 +323,7 @@ export function useDeleteLoan() {
       }
       toast({
         title: "Could not delete loan",
-        description: error.message,
+        description: friendlyMutationError(error),
         variant: "error",
       });
     },

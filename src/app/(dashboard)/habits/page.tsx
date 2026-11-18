@@ -113,16 +113,10 @@ export default function HabitsPage() {
     const completionRate =
       totalPossible > 0 ? Math.round((actualChecks / totalPossible) * 100) : 0;
 
-    const habitCounts = new Map<string, number>();
-
-    logs.forEach((log) => {
-      habitCounts.set(log.habit_id, (habitCounts.get(log.habit_id) || 0) + 1);
-    });
-
     let maxChecks = 0;
     let bestHabitId = "";
 
-    habitCounts.forEach((count, id) => {
+    checksByHabit.forEach((count, id) => {
       if (count > maxChecks) {
         maxChecks = count;
         bestHabitId = id;
@@ -156,6 +150,7 @@ export default function HabitsPage() {
             size="icon"
             onClick={() => setWeekOffset((prev) => prev - 1)}
             className="h-8 w-8 hover:bg-white/5"
+            aria-label="Previous week"
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
@@ -173,6 +168,7 @@ export default function HabitsPage() {
             onClick={() => setWeekOffset((prev) => prev + 1)}
             className="h-8 w-8 hover:bg-white/5"
             disabled={weekOffset >= 0}
+            aria-label="Next week"
           >
             <ChevronRight className="w-4 h-4" />
           </Button>

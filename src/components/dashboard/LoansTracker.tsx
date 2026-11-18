@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -417,6 +418,7 @@ function RepaymentHistory({ loanId }: { loanId: string }) {
 function LoanCard({ loan }: { loan: Loan }) {
   const [showRepayForm, setShowRepayForm] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const forgiveLoan = useForgiveLoan();
   const deleteLoan = useDeleteLoan();
@@ -434,7 +436,7 @@ function LoanCard({ loan }: { loan: Loan }) {
   }
 
   function handleDelete() {
-    deleteLoan.mutate(loan);
+    setConfirmDelete(true);
   }
 
   return (
@@ -578,6 +580,8 @@ function LoanCard({ loan }: { loan: Loan }) {
           disabled={deleting}
           className="text-white/20 hover:text-red-400 transition-colors p-1 flex-shrink-0"
           title="Delete loan"
+          aria-label={`Delete loan for ${loan.borrower_name}`}
+          type="button"
         >
           {deleting ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -598,6 +602,17 @@ function LoanCard({ loan }: { loan: Loan }) {
 
       {/* History */}
       {showHistory && <RepaymentHistory loanId={loan.id} />}
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Delete loan?"
+        description={`The loan to ${loan.borrower_name} and its repayment history will be permanently deleted.`}
+        onConfirm={() => {
+          deleteLoan.mutate(loan);
+          setConfirmDelete(false);
+        }}
+      />
     </div>
   );
 }
@@ -656,6 +671,7 @@ export function LoansTracker() {
               size="icon"
               className="h-7 w-7"
               onClick={() => setCollapsed(!collapsed)}
+              aria-label={collapsed ? "Expand loans" : "Collapse loans"}
             >
               {collapsed ? (
                 <ChevronDown className="w-4 h-4" />
